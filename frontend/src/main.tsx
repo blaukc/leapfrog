@@ -4,6 +4,7 @@ import "./index.css";
 import App from "./App.tsx";
 
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { SnackbarProvider } from "notistack";
 
 const theme = createTheme({
     colorSchemes: {
@@ -12,9 +13,11 @@ const theme = createTheme({
 });
 
 createRoot(document.getElementById("root")!).render(
-    <ThemeProvider theme={theme}>
-        <StrictMode>
-            <App />
-        </StrictMode>
-    </ThemeProvider>
+    <SnackbarProvider>
+        <ThemeProvider theme={theme}>
+            <StrictMode>
+                <App />
+            </StrictMode>
+        </ThemeProvider>
+    </SnackbarProvider>
 );

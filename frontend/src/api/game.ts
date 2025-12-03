@@ -1,10 +1,14 @@
 import type { HostGameReponse, JoinGameResponse } from "./types";
-import { get, post } from "./utils";
+import { get, post, toast } from "./utils";
 
 export const joinGame = async (gameCode: string) => {
-    return get<JoinGameResponse>(`/join/${gameCode}`);
+    const res = await get<JoinGameResponse>(`/join/${gameCode}`);
+    toast(res.message, res.success ? "success" : "error");
+    return res;
 };
 
 export const hostGame = async () => {
-    return post<HostGameReponse>(`/host`);
+    const res = await post<HostGameReponse>(`/host`);
+    toast(res.message, res.success ? "success" : "error");
+    return res;
 };

@@ -1,4 +1,10 @@
+import { enqueueSnackbar, type VariantType } from "notistack";
+
 const API_URL = "http://127.0.0.1:8000";
+
+export const toast = (message: string, variant: VariantType) => {
+    enqueueSnackbar(message, { variant });
+};
 
 // --- Generic Fetcher Helper ---
 /**
@@ -13,6 +19,7 @@ async function apiFetcher<T>(
     if (!response.ok) {
         // Attempt to read error message from body, otherwise use status text
         const errorText = await response.text();
+        toast(errorText || response.statusText, "error");
         throw new Error(
             `[HTTP ${response.status}] ${errorText || response.statusText}`
         );
