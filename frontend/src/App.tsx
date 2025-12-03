@@ -2,6 +2,7 @@ import "./App.css";
 import { useState } from "react";
 
 import { Box, Grid, Button, TextField, Tabs, Tab } from "@mui/material";
+import { joinGame } from "./api/game";
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -26,9 +27,21 @@ function CustomTabPanel(props: TabPanelProps) {
 
 function App() {
     const [value, setValue] = useState(0);
+    const [pin, setPin] = useState("");
 
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
+    };
+
+    const handlePinChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setPin(event.target.value);
+    };
+
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (pin.length === 0) return;
+        joinGame(pin);
+        console.log("Joining game with PIN:", pin);
     };
 
     return (
@@ -55,16 +68,22 @@ function App() {
                         direction="column"
                         spacing={2}
                         alignItems="center"
-                        justifyContent="center">
+                        justifyContent="center"
+                        component="form"
+                        onSubmit={handleSubmit}>
                         <TextField
                             label="Game PIN"
                             variant="outlined"
                             style={{ width: "100%" }}
+                            value={pin}
+                            onChange={handlePinChange}
                         />
                         <Button
                             variant="contained"
                             color="primary"
-                            style={{ width: "100%" }}>
+                            style={{ width: "100%" }}
+                            type="submit"
+                            disabled={pin.length === 0}>
                             Enter
                         </Button>
                     </Grid>
