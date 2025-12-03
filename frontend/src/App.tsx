@@ -2,7 +2,7 @@ import "./App.css";
 import { useState } from "react";
 
 import { Box, Grid, Button, TextField, Tabs, Tab } from "@mui/material";
-import { joinGame } from "./api/game";
+import { hostGame, joinGame } from "./api/game";
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -37,13 +37,16 @@ function App() {
         setPin(event.target.value);
     };
 
-    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleJoinGame = (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (pin.length === 0) return;
         joinGame(pin);
         console.log("Joining game with PIN:", pin);
     };
 
+    const handleHostGame = () => {
+        hostGame();
+    };
     return (
         <>
             <Box style={{ width: "300px", margin: "auto" }}>
@@ -70,7 +73,7 @@ function App() {
                         alignItems="center"
                         justifyContent="center"
                         component="form"
-                        onSubmit={handleSubmit}>
+                        onSubmit={handleJoinGame}>
                         <TextField
                             label="Game PIN"
                             variant="outlined"
@@ -98,7 +101,8 @@ function App() {
                         <Button
                             variant="contained"
                             color="primary"
-                            style={{ width: "100%" }}>
+                            style={{ width: "100%" }}
+                            onClick={handleHostGame}>
                             Host Game
                         </Button>
                     </Grid>
