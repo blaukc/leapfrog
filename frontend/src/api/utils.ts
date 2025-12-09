@@ -1,6 +1,7 @@
 import { enqueueSnackbar, type VariantType } from "notistack";
 
 const API_URL = "http://127.0.0.1:8000";
+export const WS_URL = "ws://127.0.0.1:8000/game";
 
 export const toast = (message: string, variant: VariantType) => {
     enqueueSnackbar(message, { variant });
@@ -59,3 +60,26 @@ export async function post<T>(endpoint: string, data?: any): Promise<T> {
     };
     return apiFetcher<T>(endpoint, options);
 }
+
+export const connectWebSocket = (url: string = WS_URL): WebSocket => {
+    const socket = new WebSocket(url);
+
+    socket.onopen = () => {
+        toast("Real-time connection established.", "success");
+        console.log("WebSocket connected successfully.");
+    };
+
+    socket.onmessage = (event) => {};
+
+    socket.onclose = (event) => {
+        toast("Real-time connection lost.", "warning");
+        console.log(`WebSocket closed: ${event.code} - ${event.reason}`);
+    };
+
+    socket.onerror = (error) => {
+        toast("WebSocket connection error.", "error");
+        console.error("WebSocket error:", error);
+    };
+
+    return socket;
+};

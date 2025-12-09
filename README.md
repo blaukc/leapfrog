@@ -16,7 +16,7 @@ Web based game inspired off the board game Camel Up.
 
 ### Gameplay
 
-- Once joined, players choose their names (should check unique)
+- Once joined, players will be assigned a session ID and will choose their names (should check unique)
 - Host will start the game once ready
 - At the start of the game, each player is given 5 gold, frogs are placed in their starting positions (random), players assigned their turn order (random)
 - At each turn, players are able to
@@ -35,8 +35,10 @@ Web based game inspired off the board game Camel Up.
 
 - Each player/spectator should be connected to the server via a websocket
 - Players can send events to the server and the server will send the state of the game to players
-- Each game runs on a thread that reads from an event queue 
 - Our websockets will produce to these event queues from player action events
+- Each game runs on a thread that reads from an event queue 
+- Each game thread will handle updates and push updates to a dict of GameStates
+- Dict of GameStates will follow a Single Producer Multi Consumer construct (read write locks)
 - Updates to the game state will be published to all user websockets
 - Only the event queue needs to be thread-safe, game state will only be updated by a single thread and read from by the webserver
 - Game state should consist of:

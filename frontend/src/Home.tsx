@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { Box, Grid, Button, TextField, Tabs, Tab } from "@mui/material";
 import { hostGame, joinGame } from "./api/game";
+import { useNavigate } from "react-router";
 
 interface TabPanelProps {
     children?: React.ReactNode;
@@ -28,6 +29,7 @@ function CustomTabPanel(props: TabPanelProps) {
 function App() {
     const [value, setValue] = useState(0);
     const [pin, setPin] = useState("");
+    const navigate = useNavigate();
 
     const handleChange = (_: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
@@ -37,15 +39,21 @@ function App() {
         setPin(event.target.value);
     };
 
-    const handleJoinGame = (event: React.FormEvent<HTMLFormElement>) => {
+    const handleJoinGame = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (pin.length === 0) return;
-        joinGame(pin);
-        console.log("Joining game with PIN:", pin);
+        const res = await joinGame(pin);
+        if (res.success) {
+            navigate(`/leapfrog/${pin}`);
+        }
     };
 
-    const handleHostGame = () => {
-        hostGame();
+    const handleHostGame = async () => {
+        const res = await hostGame();
+        console.log(res);
+        if (res.success) {
+            navigate(`/leapfrog/${res.game_code}`);
+        }
     };
     return (
         <>

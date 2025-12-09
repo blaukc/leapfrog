@@ -5,6 +5,10 @@ export interface JoinGameResponse {
 
 export interface HostGameReponse {
     success: boolean;
-    gameCode?: string;
+    game_code?: string;
     message: string;
+}
+
+export interface GameState {
+    state: "LOBBY" | "GAME";
 }
