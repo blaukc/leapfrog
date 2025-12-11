@@ -54,3 +54,11 @@ Web based game inspired off the board game Camel Up.
     - Name
     - Current Bets
     - Gold
+
+## Connectivity
+
+- Once player joins game, they will be part of the game lobby
+- On websocket connection, they will be shown as active/online and on close will be shown as inactive/offline
+- Websocket close will not remove the player from the game lobby, this is so players can reconnect
+- Players are identified by a uuid which is stored on the client side, so that they can be reidentified after coming back
+- Players can leave the game lobby by manually disconnecting or by if the host removes the player 

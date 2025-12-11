@@ -1,32 +1,34 @@
 import { CircularProgress } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { toast, WS_URL } from "./api/utils";
+import { toast, getWsUrl } from "../../api/utils";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 
 function Game() {
     const navigate = useNavigate();
     const params = useParams();
     const gameCode = params.gameCode;
-    const [shouldConnect, setShouldConnect] = useState(true);
+    const clientId = localStorage.getItem("client_id");
+
     const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
-        WS_URL,
+        getWsUrl(gameCode!),
         {
+            queryParams: {
+                websocket_id: clientId ?? "",
+            },
             onOpen: () => {
                 toast("Connected", "success");
             },
             onClose: () => {
                 toast("Disconnected", "error");
             },
-        },
-        shouldConnect
+        }
     );
 
-    useEffect(() => {
-        return () => {
-            setShouldConnect(false);
-        };
-    }, []);
+    if (clientId === null) {
+        navigate(`/leapfrog/${gameCode}/choose-view`);
+        return;
+    }
 
     const connectionStatus = {
         [ReadyState.CONNECTING]: "Connecting",
@@ -36,15 +38,18 @@ function Game() {
         [ReadyState.UNINSTANTIATED]: "Uninstantiated",
     }[readyState];
 
+    console.log(connectionStatus);
+
     if (gameCode === undefined || connectionStatus === "Closed") {
         navigate("/leapfrog");
         return;
-    }
-
-    if (connectionStatus === "Connecting" || connectionStatus === "Closing") {
+    } else if (
+        connectionStatus === "Connecting" ||
+        connectionStatus === "Closing"
+    ) {
         return <CircularProgress />;
     } else if (connectionStatus === "Open") {
-        return "noice";
+        return <>{JSON.stringify(lastJsonMessage, null, 2)}</>;
     } else {
         return <CircularProgress />;
     }

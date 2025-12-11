@@ -1,60 +1,50 @@
-import "./App.css";
 import { useState } from "react";
+import { Box, Button, Grid, Tab, Tabs, TextField } from "@mui/material";
+import CustomTabPanel from "../components/CustomTabPanel";
+import { useNavigate, useParams } from "react-router";
+import { createPlayer, createSpectator } from "../api/game";
 
-import { Box, Grid, Button, TextField, Tabs, Tab } from "@mui/material";
-import { hostGame, joinGame } from "./api/game";
-import { useNavigate } from "react-router";
-
-interface TabPanelProps {
-    children?: React.ReactNode;
-    index: number;
-    value: number;
-}
-
-function CustomTabPanel(props: TabPanelProps) {
-    const { children, value, index, ...other } = props;
-
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`simple-tabpanel-${index}`}
-            aria-labelledby={`simple-tab-${index}`}
-            {...other}>
-            {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-        </div>
-    );
-}
-
-function App() {
+function ChooseView() {
     const [value, setValue] = useState(0);
-    const [pin, setPin] = useState("");
+    const [playerName, setPlayerName] = useState("");
+    const params = useParams();
+    const gameCode = params.gameCode!;
     const navigate = useNavigate();
 
     const handleChange = (_: React.SyntheticEvent, newValue: number) => {
         setValue(newValue);
     };
 
-    const handlePinChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setPin(event.target.value);
+    const handlePlayerNameChange = (
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        setPlayerName(event.target.value);
     };
 
-    const handleJoinGame = async (event: React.FormEvent<HTMLFormElement>) => {
+    const handleCreatePlayer = async (
+        event: React.FormEvent<HTMLFormElement>
+    ) => {
         event.preventDefault();
-        if (pin.length === 0) return;
-        const res = await joinGame(pin);
-        if (res.success) {
-            navigate(`/leapfrog/${pin}`);
+        if (playerName.length === 0) return;
+        const res = await createPlayer(gameCode, playerName);
+        if (res.success && res.websocket_id) {
+            localStorage.setItem("client_id", res.websocket_id);
+            navigate(`/leapfrog/${gameCode}`);
+        } else {
+            navigate(`/leapfrog`);
         }
     };
 
-    const handleHostGame = async () => {
-        const res = await hostGame();
-        console.log(res);
-        if (res.success) {
-            navigate(`/leapfrog/${res.game_code}`);
+    const handleCreateSpectator = async () => {
+        const res = await createSpectator(gameCode);
+        if (res.success && res.websocket_id) {
+            localStorage.setItem("client_id", res.websocket_id);
+            navigate(`/leapfrog/${gameCode}`);
+        } else {
+            navigate(`/leapfrog`);
         }
     };
+
     return (
         <>
             <Box style={{ width: "300px", margin: "auto" }}>
@@ -69,8 +59,8 @@ function App() {
                         onChange={handleChange}
                         variant="fullWidth"
                         centered>
-                        <Tab label="Join" />
-                        <Tab label="Host" />
+                        <Tab label="Play" />
+                        <Tab label="Spectate" />
                     </Tabs>
                 </Box>
                 <CustomTabPanel value={value} index={0}>
@@ -81,21 +71,21 @@ function App() {
                         alignItems="center"
                         justifyContent="center"
                         component="form"
-                        onSubmit={handleJoinGame}>
+                        onSubmit={handleCreatePlayer}>
                         <TextField
-                            label="Game PIN"
+                            label="Name"
                             variant="outlined"
                             style={{ width: "100%" }}
-                            value={pin}
-                            onChange={handlePinChange}
+                            value={playerName}
+                            onChange={handlePlayerNameChange}
                         />
                         <Button
                             variant="contained"
                             color="primary"
                             style={{ width: "100%" }}
                             type="submit"
-                            disabled={pin.length === 0}>
-                            Enter
+                            disabled={playerName.length === 0}>
+                            Join as Player
                         </Button>
                     </Grid>
                 </CustomTabPanel>
@@ -110,8 +100,8 @@ function App() {
                             variant="contained"
                             color="primary"
                             style={{ width: "100%" }}
-                            onClick={handleHostGame}>
-                            Host Game
+                            onClick={handleCreateSpectator}>
+                            Join as Spectator
                         </Button>
                     </Grid>
                 </CustomTabPanel>
@@ -120,4 +110,4 @@ function App() {
     );
 }
 
-export default App;
+export default ChooseView;

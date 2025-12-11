@@ -1,13 +1,17 @@
 from contextlib import asynccontextmanager
+import hashlib
 import random
 from fastapi import Depends, FastAPI, Response, WebSocket, status
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import logging
 import threading
+import uuid
 
-from game_state.events import PlayerJoinEvent
-from game_state.state import GameManager
+from api.requests import CreatePlayerRequest
+from game_state.events import Event, EventAdapter, PlayerJoinEvent, SpectatorJoinEvent
+from game_state.game import GameManager
+
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -17,7 +21,7 @@ async def lifespan(app: FastAPI):
     logger.info("Lifespan setup started")
     
     app.state.state_manager = GameManager()
-    t_state_manager = threading.Thread(target=app.state.state_manager.run, daemon=True)
+    t_state_manager = threading.Thread(target=asyncio.run, args=(app.state.state_manager.run(),), daemon=True)
     t_state_manager.start()
 
     logger.info("Lifespan setup completed")
@@ -54,7 +58,7 @@ def get_state_manager() -> GameManager | None:
         return app.state.state_manager
     raise RuntimeError("State managers not initialized")
 
-@app.get("/join/{game_code}", status_code=status.HTTP_200_OK)
+@app.get("/game/{game_code}/join", status_code=status.HTTP_200_OK)
 async def join_game(game_code: str, response: Response, state_manager: GameManager = Depends(get_state_manager)):
     if state_manager.get_game_state(game_code) is not None:
         return {"success": True, "message": f"Joined game {game_code} successfully"}
@@ -69,7 +73,6 @@ async def host_game(response: Response, state_manager: GameManager = Depends(get
     while num_tries > 0:
         game_code = f"{random.randint(0, 999999):06d}"
         if state_manager.create_game_state(game_code):
-            state_manager.add_event(game_code, PlayerJoinEvent())
             break
             
         num_tries -= 1
@@ -79,9 +82,56 @@ async def host_game(response: Response, state_manager: GameManager = Depends(get
 
     return {"success": True, "game_code": f"{game_code}", "message": "Game created successfully"}
 
-@app.websocket("/game")
-async def game_websocket(websocket: WebSocket):
+@app.post("/game/{game_code}/create-player", status_code=status.HTTP_200_OK)
+async def create_player(game_code: str, payload: CreatePlayerRequest, response: Response, state_manager: GameManager = Depends(get_state_manager)):
+    if state_manager.get_game_state(game_code) is not None:
+        websocket_id = str(uuid.uuid4())[:8]
+        player_id = hashlib.sha256(websocket_id.encode()).hexdigest()[:8]
+        state_manager.add_event(PlayerJoinEvent(game_code=game_code, websocket_id=websocket_id, player_id=player_id, player_name=payload.name))
+        return {"success": True, "websocket_id": websocket_id, "message": f"Player {payload.name} has joined game sucessfully."}
+
+    response.status_code = status.HTTP_404_NOT_FOUND
+    return {"success": False, "message": f"Game code {game_code} does not exist"}
+
+@app.post("/game/{game_code}/create-spectator", status_code=status.HTTP_200_OK)
+async def create_spectator(game_code: str, response: Response, state_manager: GameManager = Depends(get_state_manager)):
+    if state_manager.get_game_state(game_code) is not None:
+        websocket_id = str(uuid.uuid4())[:8]
+        state_manager.add_event(SpectatorJoinEvent(gameCode=game_code, websocket_id=websocket_id))
+        return {"success": True, "websocket_id": websocket_id, "message": f"Spectator has joined game sucessfully."}
+
+    response.status_code = status.HTTP_404_NOT_FOUND
+    return {"success": False, "message": f"Game code {game_code} does not exist"}
+
+async def send_game_state(websocket: WebSocket, state_manager: GameManager, game_code: str, websocket_id: str):
+    game_state = state_manager.get_game_state(game_code)
+    if game_state is None:
+        print("no game")
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    print("ws", game_state)    
+    await websocket.send_json(game_state.make_websocket_response(websocket_id))
+
+@app.websocket("/game/{game_code}")
+async def game_websocket(websocket: WebSocket, game_code: str, state_manager: GameManager = Depends(get_state_manager)):
+    if websocket.query_params.get("websocket_id") is None:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    
+    websocket_id = websocket.query_params["websocket_id"]
     await websocket.accept()
+    state_manager.add_websocket(game_code=game_code, websocket_id=websocket_id, websocket=websocket)
+
+    await send_game_state(websocket, state_manager, game_code, websocket_id)
+
     while True:
-        json = await websocket.receive_json()
-        print(json)
+        event_dict = await websocket.receive_json()
+        try:
+            print(event_dict)
+            parsed_event: Event = EventAdapter.validate_python(event_dict, by_alias=True)
+            print(parsed_event)
+            parsed_event.websocket_id = id
+            state_manager.add_event(parsed_event)
+        except Exception as e:
+            logger.error(f"Failed to parse event: {e}")
+            continue
