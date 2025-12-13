@@ -86,8 +86,7 @@ async def host_game(response: Response, state_manager: GameManager = Depends(get
 async def create_player(game_code: str, payload: CreatePlayerRequest, response: Response, state_manager: GameManager = Depends(get_state_manager)):
     if state_manager.get_game_state(game_code) is not None:
         websocket_id = str(uuid.uuid4())[:8]
-        player_id = hashlib.sha256(websocket_id.encode()).hexdigest()[:8]
-        state_manager.add_event(PlayerJoinEvent(game_code=game_code, websocket_id=websocket_id, player_id=player_id, player_name=payload.name))
+        state_manager.add_event(PlayerJoinEvent(game_code=game_code, websocket_id=websocket_id, player_name=payload.name))
         return {"success": True, "websocket_id": websocket_id, "message": f"Player {payload.name} has joined game sucessfully."}
 
     response.status_code = status.HTTP_404_NOT_FOUND
@@ -130,7 +129,7 @@ async def game_websocket(websocket: WebSocket, game_code: str, state_manager: Ga
             print(event_dict)
             parsed_event: Event = EventAdapter.validate_python(event_dict, by_alias=True)
             print(parsed_event)
-            parsed_event.websocket_id = id
+            parsed_event.websocket_id = websocket_id
             state_manager.add_event(parsed_event)
         except Exception as e:
             logger.error(f"Failed to parse event: {e}")

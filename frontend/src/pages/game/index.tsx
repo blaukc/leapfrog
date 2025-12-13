@@ -1,8 +1,9 @@
 import { CircularProgress } from "@mui/material";
-import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { toast, getWsUrl } from "../../api/utils";
 import useWebSocket, { ReadyState } from "react-use-websocket";
+import { WebsocketResponseSchema } from "../../api/types";
+import Lobby from "./Lobby";
 
 function Game() {
     const navigate = useNavigate();
@@ -30,6 +31,19 @@ function Game() {
         return;
     }
 
+    if (lastJsonMessage === null) {
+        return <CircularProgress />;
+    }
+
+    const parseRes = WebsocketResponseSchema.safeParse(lastJsonMessage);
+    if (!parseRes.success) {
+        console.error("Failed to parse websocket message:", parseRes.error);
+        toast("Received malformed message from server", "error");
+        return;
+    }
+
+    const gameState = parseRes.data.game_state;
+
     const connectionStatus = {
         [ReadyState.CONNECTING]: "Connecting",
         [ReadyState.OPEN]: "Open",
@@ -49,7 +63,20 @@ function Game() {
     ) {
         return <CircularProgress />;
     } else if (connectionStatus === "Open") {
-        return <>{JSON.stringify(lastJsonMessage, null, 2)}</>;
+        if (gameState.state === "lobby") {
+            return (
+                <Lobby
+                    sendJsonMessage={sendJsonMessage}
+                    websocketId={clientId}
+                    gameCode={gameCode}
+                    gameState={gameState}
+                />
+            );
+        } else if (gameState.state === "game") {
+            return <div>Game Component Here</div>;
+        } else {
+            return <div>Unknown game state</div>;
+        }
     } else {
         return <CircularProgress />;
     }

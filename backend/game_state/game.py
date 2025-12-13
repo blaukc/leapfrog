@@ -6,8 +6,9 @@ from readerwriterlock import rwlock
 import threading
 import time
 
+from game_state.constants import DEFAULT_TRACK_LENGTH
 from game_state.state import GameState, Player
-from game_state.events import BaseEvent, ChooseViewEvent, PlayerJoinEvent, SpectatorJoinEvent
+from game_state.events import BaseEvent, KickPlayerEvent, LegBetEvent, MoveFrogEvent, OverallBetEvent, PlayerJoinEvent, SpectatorJoinEvent, SpectatorTileEvent, StartGameEvent, UpdateGameSettingsEvent
 from utils.queue import TypedQueue
 
 class Game:
@@ -22,9 +23,25 @@ class Game:
     def process_event(self, event: BaseEvent):
         match event:
             case PlayerJoinEvent():
-                new_player = Player(player_id=event.player_id, websocket_id=event.websocket_id, name=event.player_name, active=False)
-                self._game_state.add_player(new_player)
+                self._game_state.add_connection(event.websocket_id, "player", event.player_name)
             case SpectatorJoinEvent():
+                self._game_state.add_connection(event.websocket_id, "spectator")
+            case KickPlayerEvent():
+                pass
+            case UpdateGameSettingsEvent():
+                pass
+            case StartGameEvent():
+                self._game_state.reset_game()
+                self._game_state.create_players()
+                self._game_state.setup_track(length=DEFAULT_TRACK_LENGTH)
+                self._game_state.state = "game"
+            case MoveFrogEvent():
+                pass
+            case LegBetEvent():
+                pass
+            case OverallBetEvent():
+                pass
+            case SpectatorTileEvent():
                 pass
 
         self.push_game_state()

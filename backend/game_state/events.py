@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 class BaseEvent(BaseModel):
     type: str = Field(..., description="Type of the event")
     game_code: str = Field(..., description="Code of the game associated with the event", alias="gameCode")
-    websocket_id: str | None = Field(None, description="ID of the player sending the event, if applicable")
+    websocket_id: str = Field(None, description="ID of the player sending the event, if applicable")
 
     model_config = {
         "populate_by_name": True,
@@ -13,7 +13,6 @@ class BaseEvent(BaseModel):
 
 class PlayerJoinEvent(BaseEvent):
     type: Literal["player_join"] = "player_join"
-    player_id: str = Field(..., description="ID of the player joining the game", alias="playerId")
     player_name: str = Field(..., description="Name of the player joining the game", alias="playerName")
 
 class SpectatorJoinEvent(BaseEvent):
