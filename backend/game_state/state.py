@@ -87,6 +87,12 @@ class GameState:
     leg_bets: list[list[LegBet]] = field(default_factory=list)
     # players that have made overall bets in order of when the bet was made
     overall_bets: list[OverallBet] = field(default_factory=list)
+    overall_bet_winnings: list[int] = [8, 5, 3, 2, 1]
+    overall_bet_loss: int = 1
+
+    @property
+    def forward_frogs(self) -> list[Frog]:
+        return [frog for frog in self.frogs if frog.start_pos == 0]
 
     def make_websocket_response(self, websocket_id: str) -> dict:
         all_websocket_ids = set([conn.websocket_id for conn in self.connections])
@@ -140,6 +146,72 @@ class GameState:
     def reset_game(self):
         self.players.clear()
 
+    @staticmethod
+    def _get_player_id(websocket_id: str):
+        return hashlib.sha256(websocket_id.encode()).hexdigest()[:8]
+
+    def _next_turn(self):
+        if self.current_turn == "":
+            self.current_turn = self.player_order[0]
+            return
+
+        num_players = len(self.players)
+        next_idx = (self.player_order.index(self.current_turn) + 1) % num_players
+        self.current_turn = self.player_order[next_idx]
+
+    def _calculate_leg_bets(self):
+        frog_order = []
+        for tile in reversed(self.track):
+            for frog_idx in reversed(tile.frogs):
+                frog_order.append(frog_idx)
+
+        for player in self.players.values():
+            for leg_bet in player.leg_bets:
+                frog_pos = frog_order.index(leg_bet.frog_idx)
+                player.gold += leg_bet.winnings[frog_pos]
+
+    def _calculate_overall_bets(self, winning_frog: int):
+        i = 0
+        for bet in self.overall_bets:
+            player = self.players[bet.player_id]
+            if bet.frog_idx != winning_frog:
+                player.gold -= self.overall_bet_loss
+                continue
+            winnings = self.overall_bet_winnings[max(len(self.overall_bet_winnings), i)]
+            player.gold += winnings
+            i += 1
+
+    def _make_leg_bet_payouts(self, idx: int) -> list[int]:
+        if idx == 0:
+            return [5, 3] + [-1] * (self.num_frogs - 2)
+        elif idx == 1:
+            return [3, 2] + [-1] * (self.num_frogs - 2)
+        else:
+            return [2, 1] + [-1] * (self.num_frogs - 2)
+
+    def _reset_leg_bets(self):
+        self.leg_bets = [
+            [
+                LegBet(frog_idx=frog.idx, winnings=self._make_leg_bet_payouts(i))
+                for i in range(5)
+            ]
+            for frog in self.forward_frogs
+        ]
+
+        for player in self.players.values():
+            player.leg_bets.clear()
+
+    def _next_round(self):
+        self.unmoved_frogs = [frog.idx for frog in self.frogs]
+        self.current_round += 1
+
+        self._calculate_leg_bets()
+        self._reset_leg_bets()
+
+    def _end_game(self, winning_frog: int):
+        self._calculate_leg_bets()
+        self._calculate_overall_bets(winning_frog)
+
     def _get_frog_position(self, frog_idx: int) -> tuple[int, int]:
         assert frog_idx < len(self.frogs), "Invalid frog index"
         for tile_idx, tile in enumerate(self.track):
@@ -156,6 +228,7 @@ class GameState:
         self.track[current_tile].frogs = self.track[current_tile].frogs[:tile_pos]
 
         next_tile = min(current_tile + move_distance, self.num_tiles)
+        next_tile = max(next_tile, 0)
         self.track[next_tile].frogs.extend(frog_pile)
         return next_tile
 
@@ -164,7 +237,7 @@ class GameState:
             if conn.connection_type == "spectator":
                 continue
 
-            player_id = hashlib.sha256(conn.websocket_id.encode()).hexdigest()[:8]
+            player_id = self._get_player_id(conn.websocket_id)
             player = Player(player_id=player_id, connection=conn)
             self.players[player_id] = player
 
@@ -215,16 +288,16 @@ class GameState:
 
             self._move_frog(frog.idx)
 
-    def end_game(self):
-        pass
-
-    def move_frog(self):
+    def move_frog(self, websocket_id: str):
         next_frog_idx = random.choice(self.unmoved_frogs)
         self.unmoved_frogs.remove(next_frog_idx)
         moved_to_tile = self._move_frog(next_frog_idx)
 
+        player_id = self._get_player_id(websocket_id)
+        self.players[player_id].gold += 1
+
         if moved_to_tile == self.num_tiles - 1:
-            self.end_game()
+            self._end_game()
 
         if (
             len(self.unmoved_frogs)
