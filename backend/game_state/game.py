@@ -8,11 +8,28 @@ import time
 
 from game_state.constants import DEFAULT_TRACK_LENGTH
 from game_state.state import GameState, Player
-from game_state.events import BaseEvent, KickPlayerEvent, LegBetEvent, MoveFrogEvent, OverallBetEvent, PlayerJoinEvent, SpectatorJoinEvent, SpectatorTileEvent, StartGameEvent, UpdateGameSettingsEvent
+from game_state.events import (
+    BaseEvent,
+    KickPlayerEvent,
+    LegBetEvent,
+    MoveFrogEvent,
+    OverallBetEvent,
+    PlayerJoinEvent,
+    SpectatorJoinEvent,
+    SpectatorTileEvent,
+    StartGameEvent,
+    UpdateGameSettingsEvent,
+)
 from utils.queue import TypedQueue
 
+
 class Game:
-    def __init__(self, game_code: str, initial_state: GameState, state_update_queue: TypedQueue[GameState]):
+    def __init__(
+        self,
+        game_code: str,
+        initial_state: GameState,
+        state_update_queue: TypedQueue[GameState],
+    ):
         self.game_code = game_code
         self._game_state: GameState = initial_state
         self._start_time = time.time()
@@ -23,7 +40,9 @@ class Game:
     def process_event(self, event: BaseEvent):
         match event:
             case PlayerJoinEvent():
-                self._game_state.add_connection(event.websocket_id, "player", event.player_name)
+                self._game_state.add_connection(
+                    event.websocket_id, "player", event.player_name
+                )
             case SpectatorJoinEvent():
                 self._game_state.add_connection(event.websocket_id, "spectator")
             case KickPlayerEvent():
@@ -33,7 +52,9 @@ class Game:
             case StartGameEvent():
                 self._game_state.reset_game()
                 self._game_state.create_players()
-                self._game_state.setup_track(length=DEFAULT_TRACK_LENGTH)
+                self._game_state.create_track(length=DEFAULT_TRACK_LENGTH)
+                self._game_state.create_frogs()
+                self._game_state.initialize_frog_position()
                 self._game_state.state = "game"
             case MoveFrogEvent():
                 pass
@@ -59,10 +80,12 @@ class Game:
             except queue.Empty:
                 continue
 
+
 class GameManager:
     """
     Thread-safe state manager for handling shared state in game.
     """
+
     def __init__(self):
         self.lock = rwlock.RWLockWrite()
         self._state_update_queue = TypedQueue[GameState]()
@@ -87,7 +110,7 @@ class GameManager:
             self._game_threads[game_code] = t
             self._event_queues[game_code] = game.event_queue
             return True
-        
+
     def get_game_state(self, game_code: str) -> GameState | None:
         with self.lock.gen_rlock():
             state = self._game_states.get(game_code, None)
@@ -95,7 +118,9 @@ class GameManager:
                 return None
             return state
 
-    def add_websocket(self, game_code: str, websocket_id: str, websocket: WebSocket) -> bool:
+    def add_websocket(
+        self, game_code: str, websocket_id: str, websocket: WebSocket
+    ) -> bool:
         with self.lock.gen_wlock():
             if game_code not in self._websockets:
                 return False
@@ -120,7 +145,9 @@ class GameManager:
                     for websocket_id, websocket in websockets.items():
                         try:
                             print(new_state.make_websocket_response(websocket_id))
-                            await websocket.send_json(new_state.make_websocket_response(websocket_id))
+                            await websocket.send_json(
+                                new_state.make_websocket_response(websocket_id)
+                            )
                         except Exception:
                             continue
             except queue.Empty:

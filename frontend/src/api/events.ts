@@ -1,19 +1,54 @@
-export const makeChooseViewEvent = (
-    gameCode: string,
-    view: "player" | "spectator"
-) => {
+export const makeStartGameEvent = (gameCode: string, websocketId: string) => {
     return {
-        type: "choose_view",
+        type: "start_game",
         gameCode: gameCode,
-        view: view,
+        websocketId: websocketId,
     };
 };
 
-export const makeJoinGameEvent = (gameCode: string, name: string) => {
+export const makeMoveFrogEvent = (gameCode: string, websocketId: string) => {
     return {
-        type: "player_join",
+        type: "move_frog",
         gameCode: gameCode,
-        playerId: null,
-        playerName: name,
+        websocketId: websocketId,
+    };
+};
+
+export const makeLegBetEvent = (
+    gameCode: string,
+    websocketId: string,
+    frogIdx: number
+) => {
+    return {
+        type: "leg_bet",
+        gameCode: gameCode,
+        websocketId: websocketId,
+        frogIdx: frogIdx,
+    };
+};
+
+export const makeOverallBetEvent = (
+    gameCode: string,
+    websocketId: string,
+    frogIdx: number
+) => {
+    return {
+        type: "overall_bet",
+        gameCode: gameCode,
+        websocketId: websocketId,
+        frogIdx: frogIdx,
+    };
+};
+
+export const makeSpectatorTileEvent = (
+    gameCode: string,
+    websocketId: string,
+    tileIdx: number
+) => {
+    return {
+        type: "spectator_tile",
+        gameCode: gameCode,
+        websocketId: websocketId,
+        tileIdx: tileIdx,
     };
 };

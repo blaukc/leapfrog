@@ -34,12 +34,15 @@ class MoveFrogEvent(BaseEvent):
 
 class LegBetEvent(BaseEvent):
     type: Literal["leg_bet"] = "leg_bet"
+    frog_idx: int = Field(..., description="Index of the frog to bet on", alias="frogIdx")
 
 class OverallBetEvent(BaseEvent):
     type: Literal["overall_bet"] = "overall_bet"
+    frog_idx: int = Field(..., description="Index of the frog to bet on", alias="frogIdx")
 
 class SpectatorTileEvent(BaseEvent):
     type: Literal["spectator_tile"] = "spectator_tile"
+    tile_idx: int = Field(..., description="Index of the tile to place spectator tile", alias="tileIdx")
 
 
 Event = PlayerJoinEvent | SpectatorJoinEvent | KickPlayerEvent | UpdateGameSettingsEvent | StartGameEvent | MoveFrogEvent | LegBetEvent | OverallBetEvent | SpectatorTileEvent

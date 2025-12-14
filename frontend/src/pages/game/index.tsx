@@ -3,7 +3,8 @@ import { useNavigate, useParams } from "react-router";
 import { toast, getWsUrl } from "../../api/utils";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { WebsocketResponseSchema } from "../../api/types";
-import Lobby from "./Lobby";
+import LobbyScreen from "./LobbyScreen";
+import GameScreen from "./GameScreen";
 
 function Game() {
     const navigate = useNavigate();
@@ -65,7 +66,7 @@ function Game() {
     } else if (connectionStatus === "Open") {
         if (gameState.state === "lobby") {
             return (
-                <Lobby
+                <LobbyScreen
                     sendJsonMessage={sendJsonMessage}
                     websocketId={clientId}
                     gameCode={gameCode}
@@ -73,7 +74,14 @@ function Game() {
                 />
             );
         } else if (gameState.state === "game") {
-            return <div>Game Component Here</div>;
+            return (
+                <GameScreen
+                    sendJsonMessage={sendJsonMessage}
+                    websocketId={clientId}
+                    gameCode={gameCode}
+                    gameState={gameState}
+                />
+            );
         } else {
             return <div>Unknown game state</div>;
         }

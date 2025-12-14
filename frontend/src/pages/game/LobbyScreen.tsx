@@ -1,25 +1,23 @@
 import { Button, Grid } from "@mui/material";
 import type { GameState } from "../../api/types";
+import { makeStartGameEvent } from "../../api/events";
+import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 
-interface LobbyProps {
-    sendJsonMessage: (message: any) => void;
+interface LobbyScreenProps {
+    sendJsonMessage: SendJsonMessage;
     websocketId: string;
     gameCode: string;
     gameState: GameState;
 }
 
-const Lobby = ({
+const LobbyScreen = ({
     sendJsonMessage,
     websocketId,
     gameCode,
     gameState,
-}: LobbyProps) => {
+}: LobbyScreenProps) => {
     const handleStartGame = () => {
-        sendJsonMessage({
-            type: "start_game",
-            websocket_id: websocketId,
-            game_code: gameCode,
-        });
+        sendJsonMessage(makeStartGameEvent(gameCode, websocketId));
     };
 
     return (
@@ -36,4 +34,4 @@ const Lobby = ({
     );
 };
 
-export default Lobby;
+export default LobbyScreen;
