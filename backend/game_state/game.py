@@ -52,18 +52,22 @@ class Game:
             case StartGameEvent():
                 self._game_state.reset_game()
                 self._game_state.create_players()
-                self._game_state.create_track(length=DEFAULT_TRACK_LENGTH)
+                self._game_state.create_track()
                 self._game_state.create_frogs()
                 self._game_state.initialize_frog_position()
                 self._game_state.state = "game"
             case MoveFrogEvent():
-                pass
+                self._game_state.move_frog(event.websocket_id)
             case LegBetEvent():
-                pass
+                self._game_state.make_leg_bet(event.websocket_id, event.frog_idx)
             case OverallBetEvent():
-                pass
+                self._game_state.make_overall_bet(
+                    event.websocket_id, event.frog_idx, event.bet_type
+                )
             case SpectatorTileEvent():
-                pass
+                self._game_state.place_spectator_tile(
+                    event.websocket_id, event.tile_idx
+                )
 
         self.push_game_state()
 

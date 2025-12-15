@@ -30,18 +30,33 @@ class Frog:
 
 
 @dataclass
+class SpectatorTile:
+    player_id: str
+    direction: int
+
+
+@dataclass
 class Tile:
     frogs: list[int] = field(default_factory=list)
-    has_spectator_tile: bool = False
+    spectator_tile: SpectatorTile | None = None
+
+    @property
+    def has_frogs(self) -> bool:
+        return len(self.frogs) > 0
 
     def place_frog(self, frog_idx: int):
         self.frogs.append(frog_idx)
 
-    def place_spectator_tile(self):
-        self.has_spectator_tile = True
+    def place_spectator_tile(
+        self, player_id: str, direction: Literal["forward", "backward"]
+    ):
+        self.spectator_tile = SpectatorTile(
+            player_id, 1 if direction == "forward" else -1
+        )
 
-    def remove_spectator_tile(self):
-        self.has_spectator_tile = False
+    @property
+    def has_spectator_tile(self) -> bool:
+        return self.spectator_tile is not None
 
 
 @dataclass
@@ -60,8 +75,37 @@ class OverallBet:
 class Player:
     player_id: str
     connection: Connection
+    num_frogs: int
     gold: int = INITIAL_GOLD
     leg_bets: list[LegBet] = field(default_factory=list)
+    # whether a player has made a overall bet for a frog
+    overall_bets: list[bool] = field(init=False)
+    spectator_tile_idx: int = -1
+
+    def __post_init__(self):
+        self.overall_bets = [False] * self.num_frogs
+
+    def add_leg_bet(self, leg_bet: LegBet):
+        self.leg_bets.append(leg_bet)
+
+    def clear_leg_bets(self):
+        self.leg_bets.clear()
+
+    def has_made_overall_bet(self, frog_idx: int):
+        return self.overall_bets[frog_idx]
+
+    def make_overall_bet(self, frog_idx: int):
+        self.overall_bets[frog_idx] = True
+
+    @property
+    def has_spectator_tile(self) -> bool:
+        return self.spectator_tile_idx != -1
+
+    def place_spectator_tile(self, tile_idx: int):
+        self.spectator_tile_idx = tile_idx
+
+    def clear_spectator_tile(self):
+        self.spectator_tile_idx = -1
 
 
 @dataclass
@@ -86,8 +130,9 @@ class GameState:
     # available leg bets for the current round
     leg_bets: list[list[LegBet]] = field(default_factory=list)
     # players that have made overall bets in order of when the bet was made
-    overall_bets: list[OverallBet] = field(default_factory=list)
-    overall_bet_winnings: list[int] = [8, 5, 3, 2, 1]
+    overall_win_bets: list[OverallBet] = field(default_factory=list)
+    overall_lose_bets: list[OverallBet] = field(default_factory=list)
+    overall_bet_winnings: tuple[int] = (8, 5, 3, 2, 1)
     overall_bet_loss: int = 1
 
     @property
@@ -172,7 +217,7 @@ class GameState:
 
     def _calculate_overall_bets(self, winning_frog: int):
         i = 0
-        for bet in self.overall_bets:
+        for bet in self.overall_win_bets:
             player = self.players[bet.player_id]
             if bet.frog_idx != winning_frog:
                 player.gold -= self.overall_bet_loss
@@ -199,7 +244,7 @@ class GameState:
         ]
 
         for player in self.players.values():
-            player.leg_bets.clear()
+            player.clear_leg_bets()
 
     def _next_round(self):
         self.unmoved_frogs = [frog.idx for frog in self.frogs]
@@ -232,13 +277,18 @@ class GameState:
         self.track[next_tile].frogs.extend(frog_pile)
         return next_tile
 
+    def _use_spectator_tile(self):
+        pass
+
     def create_players(self):
         for conn in self.connections:
             if conn.connection_type == "spectator":
                 continue
 
             player_id = self._get_player_id(conn.websocket_id)
-            player = Player(player_id=player_id, connection=conn)
+            player = Player(
+                player_id=player_id, connection=conn, num_frogs=self.num_frogs
+            )
             self.players[player_id] = player
 
         # assert len(self.players) > 1, "Not enough players to start the game."
@@ -248,8 +298,8 @@ class GameState:
         random.shuffle(self.player_order)
         self.current_turn = self.player_order[0]
 
-    def create_track(self, length: int):
-        self.track = [Tile() for _ in range(length)]
+    def create_track(self):
+        self.track = [Tile() for _ in range(self.num_tiles)]
 
     def create_frogs(self):
         frog_names_copy, frog_colors_copy = list(FROG_NAMES), list(FROG_COLORS)
@@ -291,6 +341,7 @@ class GameState:
     def move_frog(self, websocket_id: str):
         next_frog_idx = random.choice(self.unmoved_frogs)
         self.unmoved_frogs.remove(next_frog_idx)
+
         moved_to_tile = self._move_frog(next_frog_idx)
 
         player_id = self._get_player_id(websocket_id)
@@ -303,5 +354,71 @@ class GameState:
             len(self.unmoved_frogs)
             <= self.num_frogs + self.num_backward_frogs - self.num_frogs_per_round
         ):
-            # next round
-            pass
+            self._next_round()
+
+    def make_leg_bet(self, websocket_id: str, frog_idx: int):
+        player_id = self._get_player_id(websocket_id)
+        player = self.players[player_id]
+
+        leg_bets = self.leg_bets[frog_idx]
+        assert len(leg_bets) > 0
+
+        leg_bet = self.leg_bets[frog_idx][0]
+        self.leg_bets = self.leg_bets[1:]
+
+        player.add_leg_bet(leg_bet)
+
+    def make_overall_bet(
+        self, websocket_id: str, frog_idx: int, bet_type: Literal["winner", "loser"]
+    ):
+        player_id = self._get_player_id(websocket_id)
+        player = self.players[player_id]
+        assert player.overall_bets[frog_idx] is False
+
+        overall_bet = OverallBet(frog_idx, player_id)
+        if bet_type == "winner":
+            self.overall_win_bets.append(overall_bet)
+        else:
+            self.overall_lose_bets.append(overall_bet)
+        player.make_overall_bet(frog_idx)
+
+    def is_valid_spectator_tile_placement(self, tile_idx: int) -> bool:
+        """
+        There can only be one spectator tile at each tile
+        There cannot be a spectator tile within 1 tile of the placement
+        There cannot be a frog on the placement
+        There cannot be a spectator tile one the last tile (finish line)
+        """
+        placement_tile = self.track[tile_idx]
+        if placement_tile.has_frogs:
+            return False
+
+        if placement_tile.has_spectator_tile:
+            return False
+
+        if tile_idx == self.num_tiles - 1:
+            return False
+
+        next_tile = self.track[tile_idx + 1] if tile_idx + 1 < self.num_tiles else None
+        if next_tile is not None and next_tile.has_spectator_tile:
+            return False
+
+        prev_tile = self.track[tile_idx - 1] if tile_idx - 1 > 0 else None
+        if prev_tile is not None and prev_tile.has_spectator_tile:
+            return False
+
+        return True
+
+    def place_spectator_tile(
+        self,
+        websocket_id: str,
+        tile_idx: int,
+        direction: Literal["forward", "backward"],
+    ):
+        player_id = self._get_player_id(websocket_id)
+        player = self.players[player_id]
+        assert not player.has_spectator_tile
+        assert self.is_valid_spectator_tile_placement(tile_idx)
+
+        self.track[tile_idx].place_spectator_tile(player_id, direction)
+        player.place_spectator_tile(tile_idx)
