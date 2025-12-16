@@ -54,7 +54,7 @@ class Game:
                 self._game_state.create_players()
                 self._game_state.create_track()
                 self._game_state.create_frogs()
-                self._game_state.initialize_frog_position()
+                self._game_state.start_game()
                 self._game_state.state = "game"
             case MoveFrogEvent():
                 self._game_state.move_frog(event.websocket_id)

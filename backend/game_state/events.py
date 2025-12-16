@@ -8,7 +8,9 @@ class BaseEvent(BaseModel):
         ..., description="Code of the game associated with the event", alias="gameCode"
     )
     websocket_id: str = Field(
-        None, description="ID of the player sending the event, if applicable"
+        None,
+        description="ID of the player sending the event, if applicable",
+        alias="websocketId",
     )
 
     model_config = {

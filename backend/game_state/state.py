@@ -264,9 +264,10 @@ class GameState:
                 return tile_idx, tile.frogs.index(frog_idx)
         raise ValueError("Frog not found on track")
 
-    def _move_frog(self, frog_idx: int) -> None:
+    def _move_frog(self, frog_idx: int, move_distance: int | None = None) -> None:
         frog = self.frogs[frog_idx]
-        move_distance = random.choice(frog.moves)
+        if move_distance is None:
+            move_distance = random.choice(frog.moves)
         current_tile, tile_pos = self._get_frog_position(frog_idx)
 
         frog_pile = self.track[current_tile].frogs[tile_pos:]
@@ -277,8 +278,45 @@ class GameState:
         self.track[next_tile].frogs.extend(frog_pile)
         return next_tile
 
-    def _use_spectator_tile(self):
-        pass
+    def _use_spectator_tile(self, tile_idx: int) -> int:
+        tile = self.track[tile_idx]
+        assert tile.has_frogs, "There needs to be frogs to use spectator tile"
+
+        if not tile.has_spectator_tile:
+            return tile_idx
+
+        bottom_frog = tile.frogs[0]
+        self._move_frog(bottom_frog, tile.spectator_tile.direction)
+        player_id = tile.spectator_tile.player_id
+        self.players[player_id].gold += 1
+
+    def _initialize_frog_position(self):
+        random_frog_iter = iter(random.sample(self.frogs, len(self.frogs)))
+        for frog in random_frog_iter:
+            # place frog
+            self.track[frog.start_pos].place_frog(frog.idx)
+
+            self._move_frog(frog.idx)
+
+    def move_frog(self, websocket_id: str):
+        next_frog_idx = random.choice(self.unmoved_frogs)
+        self.unmoved_frogs.remove(next_frog_idx)
+
+        moved_to_tile = self._move_frog(next_frog_idx)
+        # We only need to check once as the following tile is guaranteed to not have a spectator tile
+        moved_to_tile = self._use_spectator_tile(moved_to_tile)
+
+        player_id = self._get_player_id(websocket_id)
+        self.players[player_id].gold += 1
+
+        if moved_to_tile == self.num_tiles - 1:
+            self._end_game()
+
+        if (
+            len(self.unmoved_frogs)
+            <= self.num_frogs + self.num_backward_frogs - self.num_frogs_per_round
+        ):
+            self._next_round()
 
     def create_players(self):
         for conn in self.connections:
@@ -329,32 +367,6 @@ class GameState:
                     moves=DEFAULT_BACKWARD_FROG_MOVES,
                 )
             )
-
-    def initialize_frog_position(self):
-        random_frog_iter = iter(random.sample(self.frogs, len(self.frogs)))
-        for frog in random_frog_iter:
-            # place frog
-            self.track[frog.start_pos].place_frog(frog.idx)
-
-            self._move_frog(frog.idx)
-
-    def move_frog(self, websocket_id: str):
-        next_frog_idx = random.choice(self.unmoved_frogs)
-        self.unmoved_frogs.remove(next_frog_idx)
-
-        moved_to_tile = self._move_frog(next_frog_idx)
-
-        player_id = self._get_player_id(websocket_id)
-        self.players[player_id].gold += 1
-
-        if moved_to_tile == self.num_tiles - 1:
-            self._end_game()
-
-        if (
-            len(self.unmoved_frogs)
-            <= self.num_frogs + self.num_backward_frogs - self.num_frogs_per_round
-        ):
-            self._next_round()
 
     def make_leg_bet(self, websocket_id: str, frog_idx: int):
         player_id = self._get_player_id(websocket_id)
@@ -422,3 +434,7 @@ class GameState:
 
         self.track[tile_idx].place_spectator_tile(player_id, direction)
         player.place_spectator_tile(tile_idx)
+
+    def start_game(self):
+        self._initialize_frog_position()
+        self._next_round()
