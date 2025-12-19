@@ -1,13 +1,17 @@
-import { Button, Grid } from "@mui/material";
+import sha256 from "crypto-js/sha256";
+
+import { Grid } from "@mui/material";
 import type { GameState } from "../../api/types";
-import {
-    makeLegBetEvent,
-    makeMoveFrogEvent,
-    makeOverallBetEvent,
-    makeSpectatorTileEvent,
-} from "../../api/events";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
-import { useState } from "react";
+import { useMemo } from "react";
+import GameTile from "./components/GameTile";
+import PlayerInfo from "./components/PlayerInfo";
+import GameActions from "./components/GameActions";
+import FrogInfo from "./components/FrogInfo";
+
+function getPlayerId(websocketId: string): string {
+    return sha256(websocketId).toString().substring(0, 8);
+}
 
 interface GameScreenProps {
     sendJsonMessage: SendJsonMessage;
@@ -22,61 +26,66 @@ const GameScreen = ({
     gameCode,
     gameState,
 }: GameScreenProps) => {
-    const [legBetFrogIdx, setLegBetFrogIdx] = useState(-1);
-    const [overallBetFrogIdx, setOverallBetFrogIdx] = useState(-1);
-    const [spectatorTileIdx, setSpectatorTileIdx] = useState(-1);
-
-    const handleMoveFrog = () => {
-        sendJsonMessage(makeMoveFrogEvent(gameCode, websocketId));
-    };
-
-    const handleLegBet = () => {
-        sendJsonMessage(makeLegBetEvent(gameCode, websocketId, legBetFrogIdx));
-    };
-
-    const handleOverallBet = () => {
-        sendJsonMessage(
-            makeOverallBetEvent(gameCode, websocketId, overallBetFrogIdx)
-        );
-    };
-
-    const handleSpectatorTile = () => {
-        sendJsonMessage(
-            makeSpectatorTileEvent(gameCode, websocketId, spectatorTileIdx)
-        );
-    };
+    const playerId = useMemo(() => getPlayerId(websocketId), [websocketId]);
+    const player = gameState.players[playerId];
 
     return (
-        <Grid>
-            <div>{JSON.stringify(gameState, null, 2)}</div>
-            <Button
-                variant="contained"
-                color="primary"
-                style={{ width: "100%" }}
-                onClick={handleMoveFrog}>
-                Move Frog
-            </Button>
-            <Button
-                variant="contained"
-                color="primary"
-                style={{ width: "100%" }}
-                onClick={handleLegBet}>
-                Leg Bet
-            </Button>
-            <Button
-                variant="contained"
-                color="primary"
-                style={{ width: "100%" }}
-                onClick={handleOverallBet}>
-                Overall Bet
-            </Button>
-            <Button
-                variant="contained"
-                color="primary"
-                style={{ width: "100%" }}
-                onClick={handleSpectatorTile}>
-                Spectator Tile
-            </Button>
+        <Grid
+            container
+            flexDirection="column"
+            justifyContent="space-between"
+            wrap="nowrap"
+            height="100%">
+            <Grid container justifyContent="space-between" height="150px">
+                <Grid container wrap="nowrap" spacing={2} overflow="auto">
+                    {Object.values(gameState.players).map((player) => (
+                        <PlayerInfo
+                            player={player}
+                            isCurrentTurn={playerId === gameState.current_turn}
+                        />
+                    ))}
+                </Grid>
+                <Grid container flexDirection="column">
+                    <span>unmoved frogs</span>
+                    {gameState.unmoved_frogs.map((frogIdx) => {
+                        const frog = gameState.frogs[frogIdx];
+                        return <span>{frog.name}</span>;
+                    })}
+                </Grid>
+            </Grid>
+            <Grid container wrap="nowrap" spacing={1} overflow="auto">
+                {gameState.track.map((tile, idx) => (
+                    <GameTile idx={idx} tile={tile} frogs={gameState.frogs} />
+                ))}
+            </Grid>
+            <Grid
+                container
+                justifyContent="space-evenly"
+                overflow="auto"
+                wrap="nowrap"
+                spacing={2}>
+                {gameState.frogs.map((frog) => (
+                    <FrogInfo
+                        player={player}
+                        frog={frog}
+                        hasMoved={!gameState.unmoved_frogs.includes(frog.idx)}
+                        sendJsonMessage={sendJsonMessage}
+                        gameCode={gameCode}
+                        websocketId={websocketId}
+                        legBets={
+                            frog.is_forward_frog
+                                ? gameState.leg_bets[frog.idx]
+                                : []
+                        }
+                    />
+                ))}
+            </Grid>
+            <GameActions
+                sendJsonMessage={sendJsonMessage}
+                gameCode={gameCode}
+                websocketId={websocketId}
+            />
+            {/* <div>{JSON.stringify(gameState, null, 1)}</div> */}
         </Grid>
     );
 };

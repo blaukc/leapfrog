@@ -26,6 +26,7 @@ class Frog:
     name: str
     color: str
     start_pos: int
+    is_forward_frog: bool
     moves: list[int] = field(default_factory=list)
 
 
@@ -79,11 +80,11 @@ class Player:
     gold: int = INITIAL_GOLD
     leg_bets: list[LegBet] = field(default_factory=list)
     # whether a player has made a overall bet for a frog
-    overall_bets: list[bool] = field(init=False)
+    overall_bets: list[Literal["none", "loser", "winner"]] = field(init=False)
     spectator_tile_idx: int = -1
 
     def __post_init__(self):
-        self.overall_bets = [False] * self.num_frogs
+        self.overall_bets = ["none"] * self.num_frogs
 
     def add_leg_bet(self, leg_bet: LegBet):
         self.leg_bets.append(leg_bet)
@@ -91,11 +92,11 @@ class Player:
     def clear_leg_bets(self):
         self.leg_bets.clear()
 
-    def has_made_overall_bet(self, frog_idx: int):
-        return self.overall_bets[frog_idx]
+    def has_made_overall_bet(self, frog_idx: int) -> bool:
+        return self.overall_bets[frog_idx] != "none"
 
-    def make_overall_bet(self, frog_idx: int):
-        self.overall_bets[frog_idx] = True
+    def make_overall_bet(self, frog_idx: int, bet_type: Literal["winner", "loser"]):
+        self.overall_bets[frog_idx] = bet_type
 
     @property
     def has_spectator_tile(self) -> bool:
@@ -352,6 +353,7 @@ class GameState:
                     name=frog_names_copy[i],
                     color=frog_colors_copy[i],
                     start_pos=0,
+                    is_forward_frog=True,
                     moves=DEFAULT_FROG_MOVES,
                 )
             )
@@ -364,6 +366,7 @@ class GameState:
                     name=frog_names_copy[j],
                     color=frog_colors_copy[j],
                     start_pos=self.num_tiles - 1,
+                    is_forward_frog=False,
                     moves=DEFAULT_BACKWARD_FROG_MOVES,
                 )
             )
@@ -376,7 +379,7 @@ class GameState:
         assert len(leg_bets) > 0
 
         leg_bet = self.leg_bets[frog_idx][0]
-        self.leg_bets = self.leg_bets[1:]
+        self.leg_bets[frog_idx] = self.leg_bets[frog_idx][1:]
 
         player.add_leg_bet(leg_bet)
 
@@ -385,14 +388,14 @@ class GameState:
     ):
         player_id = self._get_player_id(websocket_id)
         player = self.players[player_id]
-        assert player.overall_bets[frog_idx] is False
+        assert player.overall_bets[frog_idx] is "none"
 
         overall_bet = OverallBet(frog_idx, player_id)
         if bet_type == "winner":
             self.overall_win_bets.append(overall_bet)
         else:
             self.overall_lose_bets.append(overall_bet)
-        player.make_overall_bet(frog_idx)
+        player.make_overall_bet(frog_idx, bet_type)
 
     def is_valid_spectator_tile_placement(self, tile_idx: int) -> bool:
         """

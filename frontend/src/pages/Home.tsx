@@ -36,7 +36,12 @@ function App() {
     };
     return (
         <>
-            <Box style={{ width: "300px", margin: "auto" }}>
+            <Grid
+                container
+                width="300px"
+                flexDirection="column"
+                height="100%"
+                justifyContent="center">
                 <Box
                     sx={{
                         borderBottom: 1,
@@ -94,7 +99,7 @@ function App() {
                         </Button>
                     </Grid>
                 </CustomTabPanel>
-            </Box>
+            </Grid>
         </>
     );
 }

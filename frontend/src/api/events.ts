@@ -30,13 +30,15 @@ export const makeLegBetEvent = (
 export const makeOverallBetEvent = (
     gameCode: string,
     websocketId: string,
-    frogIdx: number
+    frogIdx: number,
+    betType: "winner" | "loser"
 ) => {
     return {
         type: "overall_bet",
         gameCode: gameCode,
         websocketId: websocketId,
         frogIdx: frogIdx,
+        betType: betType,
     };
 };
 

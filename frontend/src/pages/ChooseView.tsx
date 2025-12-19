@@ -46,67 +46,70 @@ function ChooseView() {
     };
 
     return (
-        <>
-            <Box style={{ width: "300px", margin: "auto" }}>
-                <Box
-                    sx={{
-                        borderBottom: 1,
-                        borderColor: "divider",
-                        width: "100%",
-                    }}>
-                    <Tabs
-                        value={value}
-                        onChange={handleChange}
-                        variant="fullWidth"
-                        centered>
-                        <Tab label="Play" />
-                        <Tab label="Spectate" />
-                    </Tabs>
-                </Box>
-                <CustomTabPanel value={value} index={0}>
-                    <Grid
-                        container
-                        direction="column"
-                        spacing={2}
-                        alignItems="center"
-                        justifyContent="center"
-                        component="form"
-                        onSubmit={handleCreatePlayer}>
-                        <TextField
-                            label="Name"
-                            variant="outlined"
-                            style={{ width: "100%" }}
-                            value={playerName}
-                            onChange={handlePlayerNameChange}
-                        />
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            style={{ width: "100%" }}
-                            type="submit"
-                            disabled={playerName.length === 0}>
-                            Join as Player
-                        </Button>
-                    </Grid>
-                </CustomTabPanel>
-                <CustomTabPanel value={value} index={1}>
-                    <Grid
-                        container
-                        direction="column"
-                        spacing={2}
-                        alignItems="center"
-                        justifyContent="center">
-                        <Button
-                            variant="contained"
-                            color="primary"
-                            style={{ width: "100%" }}
-                            onClick={handleCreateSpectator}>
-                            Join as Spectator
-                        </Button>
-                    </Grid>
-                </CustomTabPanel>
+        <Grid
+            container
+            width="300px"
+            flexDirection="column"
+            height="100%"
+            justifyContent="center">
+            <Box
+                sx={{
+                    borderBottom: 1,
+                    borderColor: "divider",
+                    width: "100%",
+                }}>
+                <Tabs
+                    value={value}
+                    onChange={handleChange}
+                    variant="fullWidth"
+                    centered>
+                    <Tab label="Play" />
+                    <Tab label="Spectate" />
+                </Tabs>
             </Box>
-        </>
+            <CustomTabPanel value={value} index={0}>
+                <Grid
+                    container
+                    direction="column"
+                    spacing={2}
+                    alignItems="center"
+                    justifyContent="center"
+                    component="form"
+                    onSubmit={handleCreatePlayer}>
+                    <TextField
+                        label="Name"
+                        variant="outlined"
+                        style={{ width: "100%" }}
+                        value={playerName}
+                        onChange={handlePlayerNameChange}
+                    />
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        style={{ width: "100%" }}
+                        type="submit"
+                        disabled={playerName.length === 0}>
+                        Join as Player
+                    </Button>
+                </Grid>
+            </CustomTabPanel>
+            <CustomTabPanel value={value} index={1}>
+                <Grid
+                    container
+                    direction="column"
+                    spacing={2}
+                    alignItems="center"
+                    justifyContent="center">
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        style={{ width: "100%" }}
+                        onClick={handleCreateSpectator}>
+                        Join as Spectator
+                    </Button>
+                </Grid>
+            </CustomTabPanel>
+        </Grid>
     );
 }
 

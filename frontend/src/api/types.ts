@@ -44,6 +44,9 @@ export const FrogSchema = z.object({
     name: z.string().describe("Frog name"),
     color: z.string().describe("Frog color"),
     start_pos: z.number().int().describe("Frog start position on track"),
+    is_forward_frog: z
+        .boolean()
+        .describe("Whether frog moves forwards or backwards"),
     moves: z
         .array(z.number().int())
         .describe("Possible moves for this frog (list of ints)"),
@@ -94,7 +97,7 @@ export const PlayerSchema = z.object({
     gold: z.number().int().describe("The current gold amount."),
     leg_bets: z.array(LegBetSchema).describe("Leg bets made by the player."),
     overall_bets: z
-        .array(z.boolean())
+        .array(z.enum(["none", "winner", "loser"]))
         .describe("Whether player has made an overall bet per frog."),
     spectator_tile_idx: z
         .number()
