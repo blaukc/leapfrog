@@ -54,3 +54,11 @@ export const makeSpectatorTileEvent = (
         tileIdx: tileIdx,
     };
 };
+
+export const makeResetGameEvent = (gameCode: string, websocketId: string) => {
+    return {
+        type: "end_game",
+        gameCode: gameCode,
+        websocketId: websocketId,
+    };
+};

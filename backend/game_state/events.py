@@ -87,5 +87,6 @@ Event = (
     | LegBetEvent
     | OverallBetEvent
     | SpectatorTileEvent
+    | EndGameEvent
 )
 EventAdapter = TypeAdapter(Event)

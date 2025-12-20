@@ -166,10 +166,21 @@ export const PlayerSchema = z.object({
 });
 export type Player = z.infer<typeof PlayerSchema>;
 
+export const EndGameStatsSchema = z
+    .object({
+        winner: PlayerSchema.describe("Winning player"),
+    })
+    .nullable()
+    .optional()
+    .describe("End game stats (present when game has ended).");
+export type EndGameStats = z.infer<typeof EndGameStatsSchema>;
+
 /* Full GameState schema */
 export const GameStateSchema = z.object({
     game_code: z.string().describe("The unique code for the game."),
-    state: z.enum(["lobby", "game"]).describe("The current state of the game."),
+    state: z
+        .enum(["lobby", "game", "ended"])
+        .describe("The current state of the game."),
     current_round: z.number().int().describe("Current round number (int)"),
     updates: z
         .array(UpdateSchema)
@@ -211,6 +222,9 @@ export const GameStateSchema = z.object({
         .array(z.number().int())
         .describe("Winnings array used for overall bets"),
     overall_bet_loss: z.number().int(),
+    end_game_stats: EndGameStatsSchema.describe(
+        "Stats from the end of the game, if present."
+    ),
 });
 export type GameState = z.infer<typeof GameStateSchema>;
 

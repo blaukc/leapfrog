@@ -120,9 +120,14 @@ class Player:
 
 
 @dataclass
+class EndGameStats:
+    winner: Player
+
+
+@dataclass
 class GameState:
     game_code: str
-    state: Literal["lobby", "game"] = "lobby"
+    state: Literal["lobby", "game", "ended"] = "lobby"
     current_round: int = 0
     updates: list[Update] = field(default_factory=list)
 
@@ -146,6 +151,8 @@ class GameState:
     overall_lose_bets: list[OverallBet] = field(default_factory=list)
     overall_bet_winnings: tuple[int] = (8, 5, 3, 2, 1)
     overall_bet_loss: int = 1
+
+    end_game_stats: EndGameStats | None = field(default=None)
 
     @property
     def forward_frogs(self) -> list[Frog]:
@@ -202,6 +209,13 @@ class GameState:
 
     def reset_game(self):
         self.players.clear()
+        self.frogs.clear()
+        self.updates.clear()
+        self.unmoved_frogs.clear()
+        self.end_game_stats = None
+        self.leg_bets.clear()
+        self.overall_win_bets.clear()
+        self.overall_lose_bets.clear()
 
     @staticmethod
     def _get_player_id(websocket_id: str):
@@ -249,18 +263,19 @@ class GameState:
             player = self.players[bet.player_id]
             if bet.frog_idx != target_frog:
                 player.gold -= self.overall_bet_loss
+                print(self.overall_bet_loss * -1)
                 self.updates.append(
                     OverallBetWinningsUpdate(
                         player_id=bet.player_id,
                         bet_type=bet_type,
                         frog_idx=bet.frog_idx,
-                        winnings=-self.overall_bet_loss,
+                        winnings=self.overall_bet_loss * -1,
                     )
                 )
                 continue
             # if there are more than 5 players, they all get the last winning amt
             winnings = self.overall_bet_winnings[
-                max(len(self.overall_bet_winnings) - 1, i)
+                min(len(self.overall_bet_winnings) - 1, i)
             ]
             player.gold += winnings
             i += 1
@@ -309,6 +324,7 @@ class GameState:
                 player_rankings=[player.player_id for player in sorted_players],
             )
         )
+        self.end_game_stats = EndGameStats(winner=sorted_players[0])
 
     def _end_game(self):
         self._calculate_leg_bets()
@@ -317,6 +333,8 @@ class GameState:
         self._calculate_overall_bets(losing_frog, "loser")
 
         self._calculate_winner()
+        self.current_turn = ""
+        self.state = "ended"
 
     def _get_frog_position(self, frog_idx: int) -> tuple[int, int]:
         assert frog_idx < len(self.frogs), "Invalid frog index"

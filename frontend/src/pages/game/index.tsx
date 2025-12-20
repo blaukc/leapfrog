@@ -73,7 +73,7 @@ function Game() {
                     gameState={gameState}
                 />
             );
-        } else if (gameState.state === "game") {
+        } else if (gameState.state === "game" || gameState.state === "ended") {
             return (
                 <GameScreen
                     sendJsonMessage={sendJsonMessage}

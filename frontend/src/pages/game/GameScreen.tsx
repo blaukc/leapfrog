@@ -7,6 +7,8 @@ import PlayerInfo from "./components/PlayerInfo";
 import GameActions from "./components/GameActions";
 import FrogInfo from "./components/FrogInfo";
 import { getPlayerId } from "../../common/utils";
+import GameUpdates from "./components/GameUpdates";
+import EndGameStatsView from "./components/EndGameStatsView";
 
 interface GameScreenProps {
     sendJsonMessage: SendJsonMessage;
@@ -29,11 +31,16 @@ const GameScreen = ({
         <Grid
             container
             flexDirection="column"
-            justifyContent="space-between"
+            justifyContent="flex-start"
             wrap="nowrap"
-            height="100%">
+            spacing={10}>
             <Grid container justifyContent="space-between" height="150px">
-                <Grid container wrap="nowrap" spacing={2} overflow="auto">
+                <Grid
+                    container
+                    wrap="nowrap"
+                    spacing={2}
+                    overflow="auto"
+                    flexGrow={1}>
                     {gameState.player_order
                         .map((playerId) => gameState.players[playerId])
                         .map((player) => (
@@ -47,6 +54,11 @@ const GameScreen = ({
                             />
                         ))}
                 </Grid>
+                <GameUpdates
+                    updates={gameState.updates}
+                    players={gameState.players}
+                    frogs={gameState.frogs}
+                />
             </Grid>
             <Grid container wrap="nowrap" spacing={1} overflow="auto">
                 {gameState.track.map((tile, idx) => (
@@ -57,37 +69,51 @@ const GameScreen = ({
                     />
                 ))}
             </Grid>
-            <Grid
-                container
-                justifyContent="space-evenly"
-                overflow="auto"
-                wrap="nowrap"
-                spacing={2}>
-                {gameState.frogs.map((frog) => (
-                    <FrogInfo
-                        player={player}
-                        isCurrentTurn={isCurrentTurn}
-                        frog={frog}
-                        hasMoved={!gameState.unmoved_frogs.includes(frog.idx)}
-                        sendJsonMessage={sendJsonMessage}
-                        gameCode={gameCode}
-                        websocketId={websocketId}
-                        legBets={
-                            frog.is_forward_frog
-                                ? gameState.leg_bets[frog.idx]
-                                : []
-                        }
-                    />
-                ))}
-            </Grid>
-            <GameActions
-                sendJsonMessage={sendJsonMessage}
-                gameCode={gameCode}
-                websocketId={websocketId}
-                unmovedFrogs={gameState.unmoved_frogs}
-                isCurrentTurn={isCurrentTurn}
-            />
-            {/* <div>{JSON.stringify(gameState, null, 1)}</div> */}
+            {gameState.state === "game" && (
+                <Grid
+                    container
+                    justifyContent="space-evenly"
+                    overflow="auto"
+                    wrap="nowrap"
+                    spacing={2}>
+                    {gameState.frogs.map((frog) => (
+                        <FrogInfo
+                            player={player}
+                            isCurrentTurn={isCurrentTurn}
+                            frog={frog}
+                            hasMoved={
+                                !gameState.unmoved_frogs.includes(frog.idx)
+                            }
+                            sendJsonMessage={sendJsonMessage}
+                            gameCode={gameCode}
+                            websocketId={websocketId}
+                            legBets={
+                                frog.is_forward_frog
+                                    ? gameState.leg_bets[frog.idx]
+                                    : []
+                            }
+                        />
+                    ))}
+                </Grid>
+            )}
+            {gameState.state === "game" && (
+                <GameActions
+                    sendJsonMessage={sendJsonMessage}
+                    gameCode={gameCode}
+                    websocketId={websocketId}
+                    unmovedFrogs={gameState.unmoved_frogs}
+                    isCurrentTurn={isCurrentTurn}
+                />
+            )}
+            {gameState.state === "ended" && (
+                <EndGameStatsView
+                    sendJsonMessage={sendJsonMessage}
+                    gameCode={gameCode}
+                    websocketId={websocketId}
+                    player={player}
+                    endGameStats={gameState.end_game_stats}
+                />
+            )}
         </Grid>
     );
 };
