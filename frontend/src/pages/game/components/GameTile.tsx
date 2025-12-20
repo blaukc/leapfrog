@@ -3,7 +3,7 @@ import type { Frog, Tile } from "../../../api/types";
 import FrogSprite from "./FrogSprite";
 
 interface TileProps {
-    idx: number;
+    idx: number | "FINISH";
     tile: Tile;
     frogs: Frog[];
 }

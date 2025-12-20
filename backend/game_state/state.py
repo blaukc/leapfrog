@@ -112,7 +112,7 @@ class Player:
 @dataclass
 class GameState:
     game_code: str
-    state: Literal["lobby", "game"] = "lobby"
+    state: Literal["lobby", "game", "ended"] = "lobby"
     current_round: int = 0
 
     connections: list[Connection] = field(default_factory=list)
@@ -196,6 +196,16 @@ class GameState:
     def _get_player_id(websocket_id: str):
         return hashlib.sha256(websocket_id.encode()).hexdigest()[:8]
 
+    @property
+    def frog_order(self) -> list[int]:
+        frog_order = []
+        for tile in reversed(self.track):
+            for frog_idx in reversed(tile.frogs):
+                frog = self.frogs[frog_idx]
+                if frog.is_forward_frog:
+                    frog_order.append(frog_idx)
+        return frog_order
+
     def _next_turn(self):
         if self.current_turn == "":
             self.current_turn = self.player_order[0]
@@ -206,24 +216,22 @@ class GameState:
         self.current_turn = self.player_order[next_idx]
 
     def _calculate_leg_bets(self):
-        frog_order = []
-        for tile in reversed(self.track):
-            for frog_idx in reversed(tile.frogs):
-                frog_order.append(frog_idx)
-
         for player in self.players.values():
             for leg_bet in player.leg_bets:
-                frog_pos = frog_order.index(leg_bet.frog_idx)
+                frog_pos = self.frog_order.index(leg_bet.frog_idx)
                 player.gold += leg_bet.winnings[frog_pos]
 
-    def _calculate_overall_bets(self, winning_frog: int):
+    def _calculate_overall_bets(self, target_frog: int, bets: list[OverallBet]):
         i = 0
-        for bet in self.overall_win_bets:
+        for bet in bets:
             player = self.players[bet.player_id]
-            if bet.frog_idx != winning_frog:
+            if bet.frog_idx != target_frog:
                 player.gold -= self.overall_bet_loss
                 continue
-            winnings = self.overall_bet_winnings[max(len(self.overall_bet_winnings), i)]
+            # if there are more than 5 players, they all get the last winning amt
+            winnings = self.overall_bet_winnings[
+                max(len(self.overall_bet_winnings) - 1, i)
+            ]
             player.gold += winnings
             i += 1
 
@@ -254,9 +262,11 @@ class GameState:
         self._calculate_leg_bets()
         self._reset_leg_bets()
 
-    def _end_game(self, winning_frog: int):
+    def _end_game(self):
         self._calculate_leg_bets()
-        self._calculate_overall_bets(winning_frog)
+        winning_frog, losing_frog = self.frog_order[0], self.frog_order[-1]
+        self._calculate_overall_bets(winning_frog, self.overall_win_bets)
+        self._calculate_overall_bets(losing_frog, self.overall_lose_bets)
 
     def _get_frog_position(self, frog_idx: int) -> tuple[int, int]:
         assert frog_idx < len(self.frogs), "Invalid frog index"
@@ -274,7 +284,7 @@ class GameState:
         frog_pile = self.track[current_tile].frogs[tile_pos:]
         self.track[current_tile].frogs = self.track[current_tile].frogs[:tile_pos]
 
-        next_tile = min(current_tile + move_distance, self.num_tiles)
+        next_tile = min(current_tile + move_distance, self.num_tiles - 1)
         next_tile = max(next_tile, 0)
         self.track[next_tile].frogs.extend(frog_pile)
         return next_tile
@@ -299,6 +309,10 @@ class GameState:
 
             self._move_frog(frog.idx)
 
+    def check_turn(self, websocket_id: str) -> bool:
+        player_id = self._get_player_id(websocket_id)
+        return player_id == self.current_turn
+
     def move_frog(self, websocket_id: str):
         next_frog_idx = random.choice(self.unmoved_frogs)
         self.unmoved_frogs.remove(next_frog_idx)
@@ -312,6 +326,7 @@ class GameState:
 
         if moved_to_tile == self.num_tiles - 1:
             self._end_game()
+            return
 
         if (
             len(self.unmoved_frogs)

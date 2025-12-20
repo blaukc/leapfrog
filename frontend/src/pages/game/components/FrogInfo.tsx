@@ -66,7 +66,15 @@ const FrogInfo = ({
             spacing={1}
             borderColor={borderColor.toString()}>
             <Grid container flexDirection="column" alignItems="center">
-                <Typography>{frog.name}</Typography>
+                <Typography
+                    sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        width: "125px",
+                    }}>
+                    {frog.name}
+                </Typography>
                 <FrogSprite frog={frog} showName={false} />
                 <span>{hasMoved ? "moved" : "unmoved"}</span>
             </Grid>

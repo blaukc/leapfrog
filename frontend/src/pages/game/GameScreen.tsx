@@ -1,5 +1,3 @@
-import sha256 from "crypto-js/sha256";
-
 import { Grid } from "@mui/material";
 import type { GameState } from "../../api/types";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
@@ -8,10 +6,7 @@ import GameTile from "./components/GameTile";
 import PlayerInfo from "./components/PlayerInfo";
 import GameActions from "./components/GameActions";
 import FrogInfo from "./components/FrogInfo";
-
-function getPlayerId(websocketId: string): string {
-    return sha256(websocketId).toString().substring(0, 8);
-}
+import { getPlayerId } from "../../common/utils";
 
 interface GameScreenProps {
     sendJsonMessage: SendJsonMessage;
@@ -49,7 +44,11 @@ const GameScreen = ({
             </Grid>
             <Grid container wrap="nowrap" spacing={1} overflow="auto">
                 {gameState.track.map((tile, idx) => (
-                    <GameTile idx={idx} tile={tile} frogs={gameState.frogs} />
+                    <GameTile
+                        idx={idx === gameState.num_tiles - 1 ? "FINISH" : idx}
+                        tile={tile}
+                        frogs={gameState.frogs}
+                    />
                 ))}
             </Grid>
             <Grid
@@ -78,6 +77,7 @@ const GameScreen = ({
                 sendJsonMessage={sendJsonMessage}
                 gameCode={gameCode}
                 websocketId={websocketId}
+                unmovedFrogs={gameState.unmoved_frogs}
             />
             {/* <div>{JSON.stringify(gameState, null, 1)}</div> */}
         </Grid>

@@ -57,17 +57,21 @@ class Game:
                 self._game_state.start_game()
                 self._game_state.state = "game"
             case MoveFrogEvent():
-                self._game_state.move_frog(event.websocket_id)
+                if self._game_state.check_turn(event.websocket_id):
+                    self._game_state.move_frog(event.websocket_id)
             case LegBetEvent():
-                self._game_state.make_leg_bet(event.websocket_id, event.frog_idx)
+                if self._game_state.check_turn(event.websocket_id):
+                    self._game_state.make_leg_bet(event.websocket_id, event.frog_idx)
             case OverallBetEvent():
-                self._game_state.make_overall_bet(
-                    event.websocket_id, event.frog_idx, event.bet_type
-                )
+                if self._game_state.check_turn(event.websocket_id):
+                    self._game_state.make_overall_bet(
+                        event.websocket_id, event.frog_idx, event.bet_type
+                    )
             case SpectatorTileEvent():
-                self._game_state.place_spectator_tile(
-                    event.websocket_id, event.tile_idx
-                )
+                if self._game_state.check_turn(event.websocket_id):
+                    self._game_state.place_spectator_tile(
+                        event.websocket_id, event.tile_idx
+                    )
 
         self.push_game_state()
 
