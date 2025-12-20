@@ -1,5 +1,5 @@
 import {
-    Avatar,
+    Badge,
     Button,
     ButtonGroup,
     Divider,
@@ -11,6 +11,7 @@ import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { makeLegBetEvent, makeOverallBetEvent } from "../../../api/events";
 import type { Frog, LegBet, Player } from "../../../api/types";
 import FrogSprite from "./FrogSprite";
+import PlacingIcon from "./PlacingIcon";
 
 interface FrogInfoProps {
     player: Player;
@@ -94,12 +95,15 @@ const FrogInfo = ({
                         alignItems="center"
                         spacing={1.5}
                         width="100%">
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={handleLegBet}>
-                            Leg Bet
-                        </Button>
+                        <Badge badgeContent={legBets.length} color="primary">
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                onClick={handleLegBet}
+                                disabled={legBets.length <= 0}>
+                                Leg Bet
+                            </Button>
+                        </Badge>
                         {legBets.length > 0 && (
                             <>
                                 <Grid
@@ -107,43 +111,19 @@ const FrogInfo = ({
                                     justifyContent="space-evenly"
                                     width="100%">
                                     <Grid alignItems="center">
-                                        <Avatar
-                                            sx={{
-                                                width: 18,
-                                                height: 18,
-                                                fontSize: 14,
-                                                bgcolor: "#FFD700",
-                                            }}>
-                                            1
-                                        </Avatar>
+                                        <PlacingIcon placing="first" />
                                         <Typography>
                                             {legBets[0].winnings[0]}
                                         </Typography>
                                     </Grid>
                                     <Grid alignItems="center">
-                                        <Avatar
-                                            sx={{
-                                                width: 18,
-                                                height: 18,
-                                                fontSize: 14,
-                                                bgcolor: "#C0C0C0",
-                                            }}>
-                                            2
-                                        </Avatar>
+                                        <PlacingIcon placing="second" />
                                         <Typography>
                                             {legBets[0].winnings[1]}
                                         </Typography>
                                     </Grid>
                                     <Grid alignItems="center">
-                                        <Avatar
-                                            sx={{
-                                                width: 18,
-                                                height: 18,
-                                                fontSize: 14,
-                                                bgcolor: "#CD7F32",
-                                            }}>
-                                            3+
-                                        </Avatar>
+                                        <PlacingIcon placing="third" />
                                         <Typography>
                                             {legBets[0].winnings[2]}
                                         </Typography>

@@ -41,16 +41,10 @@ const GameScreen = ({
                     {Object.values(gameState.players).map((player) => (
                         <PlayerInfo
                             player={player}
+                            frogs={gameState.frogs}
                             isCurrentTurn={playerId === gameState.current_turn}
                         />
                     ))}
-                </Grid>
-                <Grid container flexDirection="column">
-                    <span>unmoved frogs</span>
-                    {gameState.unmoved_frogs.map((frogIdx) => {
-                        const frog = gameState.frogs[frogIdx];
-                        return <span>{frog.name}</span>;
-                    })}
                 </Grid>
             </Grid>
             <Grid container wrap="nowrap" spacing={1} overflow="auto">
