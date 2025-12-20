@@ -21,6 +21,7 @@ interface FrogInfoProps {
     gameCode: string;
     websocketId: string;
     legBets: LegBet[];
+    isCurrentTurn: boolean;
 }
 
 const FrogInfo = ({
@@ -31,6 +32,7 @@ const FrogInfo = ({
     gameCode,
     websocketId,
     legBets,
+    isCurrentTurn,
 }: FrogInfoProps) => {
     const theme = useTheme();
 
@@ -84,7 +86,10 @@ const FrogInfo = ({
                     <ButtonGroup
                         variant="outlined"
                         size="small"
-                        disabled={player.overall_bets[frog.idx] !== "none"}>
+                        disabled={
+                            player.overall_bets[frog.idx] !== "none" ||
+                            !isCurrentTurn
+                        }>
                         <Button
                             onClick={() => handleOverallBet("winner")}
                             color="success">
@@ -108,7 +113,9 @@ const FrogInfo = ({
                                 variant="outlined"
                                 size="small"
                                 onClick={handleLegBet}
-                                disabled={legBets.length <= 0}>
+                                disabled={
+                                    legBets.length <= 0 || !isCurrentTurn
+                                }>
                                 Leg Bet
                             </Button>
                         </Badge>

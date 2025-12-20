@@ -23,6 +23,7 @@ const GameScreen = ({
 }: GameScreenProps) => {
     const playerId = useMemo(() => getPlayerId(websocketId), [websocketId]);
     const player = gameState.players[playerId];
+    const isCurrentTurn = playerId === gameState.current_turn;
 
     return (
         <Grid
@@ -33,13 +34,18 @@ const GameScreen = ({
             height="100%">
             <Grid container justifyContent="space-between" height="150px">
                 <Grid container wrap="nowrap" spacing={2} overflow="auto">
-                    {Object.values(gameState.players).map((player) => (
-                        <PlayerInfo
-                            player={player}
-                            frogs={gameState.frogs}
-                            isCurrentTurn={playerId === gameState.current_turn}
-                        />
-                    ))}
+                    {gameState.player_order
+                        .map((playerId) => gameState.players[playerId])
+                        .map((player) => (
+                            <PlayerInfo
+                                player={player}
+                                frogs={gameState.frogs}
+                                isCurrentTurn={
+                                    player.player_id === gameState.current_turn
+                                }
+                                isPlayer={player.player_id === playerId}
+                            />
+                        ))}
                 </Grid>
             </Grid>
             <Grid container wrap="nowrap" spacing={1} overflow="auto">
@@ -60,6 +66,7 @@ const GameScreen = ({
                 {gameState.frogs.map((frog) => (
                     <FrogInfo
                         player={player}
+                        isCurrentTurn={isCurrentTurn}
                         frog={frog}
                         hasMoved={!gameState.unmoved_frogs.includes(frog.idx)}
                         sendJsonMessage={sendJsonMessage}
@@ -78,6 +85,7 @@ const GameScreen = ({
                 gameCode={gameCode}
                 websocketId={websocketId}
                 unmovedFrogs={gameState.unmoved_frogs}
+                isCurrentTurn={isCurrentTurn}
             />
             {/* <div>{JSON.stringify(gameState, null, 1)}</div> */}
         </Grid>

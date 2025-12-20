@@ -7,6 +7,7 @@ interface GameActionsProps {
     gameCode: string;
     websocketId: string;
     unmovedFrogs: number[];
+    isCurrentTurn: boolean;
 }
 
 const GameActions = ({
@@ -14,6 +15,7 @@ const GameActions = ({
     gameCode,
     websocketId,
     unmovedFrogs,
+    isCurrentTurn,
 }: GameActionsProps) => {
     const handleMoveFrog = () => {
         sendJsonMessage(makeMoveFrogEvent(gameCode, websocketId));
@@ -27,7 +29,8 @@ const GameActions = ({
                 <Button
                     variant="outlined"
                     color="primary"
-                    onClick={handleMoveFrog}>
+                    onClick={handleMoveFrog}
+                    disabled={!isCurrentTurn}>
                     Move Frog
                 </Button>
             </Badge>

@@ -6,9 +6,15 @@ interface PlayerInfoProps {
     player: Player;
     frogs: Frog[];
     isCurrentTurn: boolean;
+    isPlayer: boolean;
 }
 
-const PlayerInfo = ({ player, frogs, isCurrentTurn }: PlayerInfoProps) => {
+const PlayerInfo = ({
+    player,
+    frogs,
+    isCurrentTurn,
+    isPlayer,
+}: PlayerInfoProps) => {
     const accumulatedWinnings = new Map<number, number[]>();
     player.leg_bets.forEach((legBet) => {
         if (!accumulatedWinnings.has(legBet.frog_idx)) {
@@ -20,11 +26,13 @@ const PlayerInfo = ({ player, frogs, isCurrentTurn }: PlayerInfoProps) => {
             currWinnings.map((cw, idx) => cw + legBet.winnings[idx])
         );
     });
+
     return (
         <Grid container flexDirection="column" alignItems="start" width="150px">
             <Typography
                 variant="subtitle1"
-                color={isCurrentTurn ? "primary" : "none"}>
+                color={isCurrentTurn ? "primary" : "none"}
+                sx={{ textDecoration: isPlayer ? "underline" : "none" }}>
                 {player.connection.name}
             </Typography>
             <Typography variant="body2">Gold: {player.gold}</Typography>

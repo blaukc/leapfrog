@@ -324,6 +324,8 @@ class GameState:
         player_id = self._get_player_id(websocket_id)
         self.players[player_id].gold += 1
 
+        self._next_turn()
+
         if moved_to_tile == self.num_tiles - 1:
             self._end_game()
             return
@@ -398,6 +400,8 @@ class GameState:
 
         player.add_leg_bet(leg_bet)
 
+        self._next_turn()
+
     def make_overall_bet(
         self, websocket_id: str, frog_idx: int, bet_type: Literal["winner", "loser"]
     ):
@@ -411,6 +415,8 @@ class GameState:
         else:
             self.overall_lose_bets.append(overall_bet)
         player.make_overall_bet(frog_idx, bet_type)
+
+        self._next_turn()
 
     def is_valid_spectator_tile_placement(self, tile_idx: int) -> bool:
         """
@@ -452,6 +458,8 @@ class GameState:
 
         self.track[tile_idx].place_spectator_tile(player_id, direction)
         player.place_spectator_tile(tile_idx)
+
+        self._next_turn()
 
     def start_game(self):
         self._initialize_frog_position()
