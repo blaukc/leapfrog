@@ -10,6 +10,7 @@ from game_state.constants import DEFAULT_TRACK_LENGTH
 from game_state.state import GameState, Player
 from game_state.events import (
     BaseEvent,
+    EndGameEvent,
     KickPlayerEvent,
     LegBetEvent,
     MoveFrogEvent,
@@ -72,6 +73,8 @@ class Game:
                     self._game_state.place_spectator_tile(
                         event.websocket_id, event.tile_idx
                     )
+            case EndGameEvent():
+                self._game_state.to_lobby()
 
         self.push_game_state()
 

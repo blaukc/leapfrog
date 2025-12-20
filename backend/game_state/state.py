@@ -2,6 +2,16 @@ from dataclasses import asdict, dataclass, field
 import hashlib
 import random
 from typing import Literal
+from game_state.updates import (
+    EndGameUpdate,
+    LegBetWinningsUpdate,
+    OverallBetWinningsUpdate,
+    PlayerLegBetUpdate,
+    PlayerMoveFrogUpdate,
+    PlayerOverallBetUpdate,
+    PlayerSpectatorTileUpdate,
+    Update,
+)
 from game_state.constants import (
     DEFAULT_BACKWARD_FROG_MOVES,
     DEFAULT_FROG_MOVES,
@@ -112,8 +122,9 @@ class Player:
 @dataclass
 class GameState:
     game_code: str
-    state: Literal["lobby", "game", "ended"] = "lobby"
+    state: Literal["lobby", "game"] = "lobby"
     current_round: int = 0
+    updates: list[Update] = field(default_factory=list)
 
     connections: list[Connection] = field(default_factory=list)
     players: dict[str, Player] = field(default_factory=dict)
@@ -220,13 +231,32 @@ class GameState:
             for leg_bet in player.leg_bets:
                 frog_pos = self.frog_order.index(leg_bet.frog_idx)
                 player.gold += leg_bet.winnings[frog_pos]
+                self.updates.append(
+                    LegBetWinningsUpdate(
+                        player_id=player.player_id,
+                        frog_idx=leg_bet.frog_idx,
+                        frog_placing=frog_pos,
+                        winnings=leg_bet.winnings[frog_pos],
+                    )
+                )
 
-    def _calculate_overall_bets(self, target_frog: int, bets: list[OverallBet]):
+    def _calculate_overall_bets(
+        self, target_frog: int, bet_type: Literal["winner", "loser"]
+    ):
+        bets = self.overall_win_bets if bet_type == "winner" else self.overall_lose_bets
         i = 0
         for bet in bets:
             player = self.players[bet.player_id]
             if bet.frog_idx != target_frog:
                 player.gold -= self.overall_bet_loss
+                self.updates.append(
+                    OverallBetWinningsUpdate(
+                        player_id=bet.player_id,
+                        bet_type=bet_type,
+                        frog_idx=bet.frog_idx,
+                        winnings=-self.overall_bet_loss,
+                    )
+                )
                 continue
             # if there are more than 5 players, they all get the last winning amt
             winnings = self.overall_bet_winnings[
@@ -234,6 +264,14 @@ class GameState:
             ]
             player.gold += winnings
             i += 1
+            self.updates.append(
+                OverallBetWinningsUpdate(
+                    player_id=bet.player_id,
+                    bet_type=bet_type,
+                    frog_idx=bet.frog_idx,
+                    winnings=winnings,
+                )
+            )
 
     def _make_leg_bet_payouts(self, idx: int) -> list[int]:
         if idx == 0:
@@ -262,11 +300,23 @@ class GameState:
         self._calculate_leg_bets()
         self._reset_leg_bets()
 
+    def _calculate_winner(self):
+        sorted_players = list(self.players.values())
+        sorted_players.sort(key=lambda p: p.gold, reverse=True)
+        self.updates.append(
+            EndGameUpdate(
+                player_id="",
+                player_rankings=[player.player_id for player in sorted_players],
+            )
+        )
+
     def _end_game(self):
         self._calculate_leg_bets()
         winning_frog, losing_frog = self.frog_order[0], self.frog_order[-1]
-        self._calculate_overall_bets(winning_frog, self.overall_win_bets)
-        self._calculate_overall_bets(losing_frog, self.overall_lose_bets)
+        self._calculate_overall_bets(winning_frog, "winner")
+        self._calculate_overall_bets(losing_frog, "loser")
+
+        self._calculate_winner()
 
     def _get_frog_position(self, frog_idx: int) -> tuple[int, int]:
         assert frog_idx < len(self.frogs), "Invalid frog index"
@@ -317,6 +367,7 @@ class GameState:
         next_frog_idx = random.choice(self.unmoved_frogs)
         self.unmoved_frogs.remove(next_frog_idx)
 
+        from_tile, _ = self._get_frog_position(next_frog_idx)
         moved_to_tile = self._move_frog(next_frog_idx)
         # We only need to check once as the following tile is guaranteed to not have a spectator tile
         moved_to_tile = self._use_spectator_tile(moved_to_tile)
@@ -325,6 +376,15 @@ class GameState:
         self.players[player_id].gold += 1
 
         self._next_turn()
+
+        self.updates.append(
+            PlayerMoveFrogUpdate(
+                player_id=player_id,
+                frog_idx=next_frog_idx,
+                from_tile=from_tile,
+                to_tile=moved_to_tile,
+            )
+        )
 
         if moved_to_tile == self.num_tiles - 1:
             self._end_game()
@@ -400,6 +460,8 @@ class GameState:
 
         player.add_leg_bet(leg_bet)
 
+        self.updates.append(PlayerLegBetUpdate(player_id=player_id, frog_idx=frog_idx))
+
         self._next_turn()
 
     def make_overall_bet(
@@ -407,7 +469,7 @@ class GameState:
     ):
         player_id = self._get_player_id(websocket_id)
         player = self.players[player_id]
-        assert player.overall_bets[frog_idx] is "none"
+        assert player.overall_bets[frog_idx] == "none"
 
         overall_bet = OverallBet(frog_idx, player_id)
         if bet_type == "winner":
@@ -415,6 +477,10 @@ class GameState:
         else:
             self.overall_lose_bets.append(overall_bet)
         player.make_overall_bet(frog_idx, bet_type)
+
+        self.updates.append(
+            PlayerOverallBetUpdate(player_id=player_id, bet_type=bet_type)
+        )
 
         self._next_turn()
 
@@ -459,8 +525,19 @@ class GameState:
         self.track[tile_idx].place_spectator_tile(player_id, direction)
         player.place_spectator_tile(tile_idx)
 
+        self.updates.append(
+            PlayerSpectatorTileUpdate(
+                player_id=player_id,
+                tile_idx=tile_idx,
+                direction=1 if direction == "forward" else -1,
+            )
+        )
+
         self._next_turn()
 
     def start_game(self):
         self._initialize_frog_position()
         self._next_round()
+
+    def to_lobby(self):
+        self.state = "lobby"

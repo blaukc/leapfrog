@@ -24,6 +24,66 @@ export interface CreateSpectatorResponse {
     message: string;
 }
 
+export const PlayerMoveFrogUpdateSchema = z.object({
+    type: z.literal("player_move_frog"),
+    player_id: z.string(),
+    frog_idx: z.number().int(),
+    from_tile: z.number().int(),
+    to_tile: z.number().int(),
+});
+
+export const PlayerLegBetUpdateSchema = z.object({
+    type: z.literal("player_leg_bet"),
+    player_id: z.string(),
+    frog_idx: z.number().int(),
+});
+
+export const PlayerOverallBetUpdateSchema = z.object({
+    type: z.literal("player_overall_bet"),
+    player_id: z.string(),
+    bet_type: z.enum(["winner", "loser"]),
+});
+
+export const PlayerSpectatorTileUpdateSchema = z.object({
+    type: z.literal("player_spectator_tile"),
+    player_id: z.string(),
+    tile_idx: z.number().int(),
+    direction: z.number().int(),
+});
+
+export const LegBetWinningsUpdateSchema = z.object({
+    type: z.literal("leg_bet_winnings"),
+    player_id: z.string(),
+    frog_idx: z.number().int(),
+    frog_placing: z.number().int(),
+    winnings: z.number().int(),
+});
+
+export const OverallBetWinningsUpdateSchema = z.object({
+    type: z.literal("overall_bet_winnings"),
+    player_id: z.string(),
+    bet_type: z.enum(["winner", "loser"]),
+    frog_idx: z.number().int(),
+    winnings: z.number().int(),
+});
+
+export const EndGameUpdateSchema = z.object({
+    type: z.literal("end_game_update"),
+    player_id: z.string(),
+    player_rankings: z.array(z.string()),
+});
+
+export const UpdateSchema = z.discriminatedUnion("type", [
+    PlayerMoveFrogUpdateSchema,
+    PlayerLegBetUpdateSchema,
+    PlayerOverallBetUpdateSchema,
+    PlayerSpectatorTileUpdateSchema,
+    LegBetWinningsUpdateSchema,
+    OverallBetWinningsUpdateSchema,
+    EndGameUpdateSchema,
+]);
+export type Update = z.infer<typeof UpdateSchema>;
+
 export const ConnectionSchema = z.object({
     websocket_id: z
         .string()
@@ -111,6 +171,9 @@ export const GameStateSchema = z.object({
     game_code: z.string().describe("The unique code for the game."),
     state: z.enum(["lobby", "game"]).describe("The current state of the game."),
     current_round: z.number().int().describe("Current round number (int)"),
+    updates: z
+        .array(UpdateSchema)
+        .describe("List of updates/events from server."),
     connections: z
         .array(ConnectionSchema)
         .describe("All connection objects (players and spectators)."),

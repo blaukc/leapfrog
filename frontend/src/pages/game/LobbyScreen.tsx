@@ -33,8 +33,10 @@ const LobbyScreen = ({
             container
             flexDirection="column"
             justifyContent="center"
+            alignItems="center"
             height="100%"
-            spacing={3}>
+            spacing={2}>
+            <Typography variant="h3">{gameCode}</Typography>
             {gameState.connections.filter(
                 (conn) => conn.connection_type === "player"
             ).length > 0 && (
@@ -51,27 +53,19 @@ const LobbyScreen = ({
                         ))}
                 </Grid>
             )}
-            {gameState.connections.filter(
-                (conn) => conn.connection_type === "spectator"
-            ).length > 0 && (
-                <Grid
-                    container
-                    flexDirection="column"
-                    alignItems="center"
-                    spacing={0}>
-                    <Typography>Spectators:</Typography>
-                    {gameState.connections
-                        .filter((conn) => conn.connection_type === "spectator")
-                        .map((conn) => (
-                            <Typography>{conn.name}</Typography>
-                        ))}
-                </Grid>
-            )}
+            <Typography>
+                Spectators:{" "}
+                {
+                    gameState.connections.filter(
+                        (conn) => conn.connection_type === "spectator"
+                    ).length
+                }
+            </Typography>
             {connection.is_host && (
                 <Button
                     variant="contained"
                     color="primary"
-                    style={{ width: "100%" }}
+                    style={{ width: "150px" }}
                     onClick={handleStartGame}>
                     Start Game
                 </Button>

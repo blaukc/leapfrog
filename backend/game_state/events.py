@@ -73,6 +73,10 @@ class SpectatorTileEvent(BaseEvent):
     )
 
 
+class EndGameEvent(BaseEvent):
+    type: Literal["end_game"] = "end_game"
+
+
 Event = (
     PlayerJoinEvent
     | SpectatorJoinEvent
