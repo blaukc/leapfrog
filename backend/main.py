@@ -42,13 +42,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-origins = [
-    "http://localhost",
-    "http://localhost:3000",  # Common React dev port
-    "http://localhost:5173",  # Common Vite dev port (matching your error)
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1",
-]
+import os
+
+# Determine CORS origins via ALLOWED_ORIGINS env var (comma separated). Fall back to common dev origins.
+_allowed = os.environ.get("ALLOWED_ORIGINS")
+if _allowed:
+    origins = [s.strip() for s in _allowed.split(",") if s.strip()]
+else:
+    origins = [
+        "http://localhost",
+        "http://localhost:3000",  # Common React dev port
+        "http://localhost:5173",  # Common Vite dev port (matching your error)
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1",
+    ]
 
 app.add_middleware(
     CORSMiddleware,

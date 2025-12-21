@@ -1,7 +1,14 @@
 import { enqueueSnackbar, type VariantType } from "notistack";
 
-const API_URL = "http://127.0.0.1:8000";
-export const WS_URL = "ws://127.0.0.1:8000/game";
+// Use Vite-provided env vars when available; fall back to sensible defaults for dev
+const API_URL =
+    (import.meta.env.VITE_API_BASE_URL as string) || "http://127.0.0.1:8000";
+const _WS_BASE =
+    (import.meta.env.VITE_WS_BASE_URL as string) || "ws://127.0.0.1:8000";
+// Ensure `/game` path exists on the websocket base URL
+export const WS_URL = _WS_BASE.endsWith("/game")
+    ? _WS_BASE
+    : `${_WS_BASE}/game`;
 
 export const getWsUrl = (gameCode: string) => {
     return `${WS_URL}/${gameCode}`;

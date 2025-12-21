@@ -61,4 +61,32 @@ Web based game inspired off the board game Camel Up.
 - On websocket connection, they will be shown as active/online and on close will be shown as inactive/offline
 - Websocket close will not remove the player from the game lobby, this is so players can reconnect
 - Players are identified by a uuid which is stored on the client side, so that they can be reidentified after coming back
-- Players can leave the game lobby by manually disconnecting or by if the host removes the player 
+- Players can leave the game lobby by manually disconnecting or by if the host removes the player
+
+---
+
+## Docker / Deployment
+
+Environment files
+- Copy `.env.example` to `.env` for local development, or use `.env.development` and `.env.production`.
+- To start services in development:
+
+```bash
+make up-dev
+```
+
+- To start services in production (on your GCP VM where `blaukc.dev` resolves to the VM):
+
+```bash
+make up-prod
+```
+
+Notes
+- The frontend build uses Vite; set `VITE_API_BASE_URL` and `VITE_WS_BASE_URL` in your chosen `.env` file to control where the frontend connects.
+- The backend reads `ALLOWED_ORIGINS` (comma-separated) to configure CORS for your production domain, e.g. `ALLOWED_ORIGINS=https://blaukc.dev`.
+- You can also run docker compose manually with a specific env file:
+
+```bash
+docker compose --env-file .env.production up --build -d
+```
+ 
