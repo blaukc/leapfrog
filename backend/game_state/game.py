@@ -1,13 +1,11 @@
 from dataclasses import asdict, dataclass
 import queue
-from typing import Generic, TypeVar
 from fastapi import WebSocket
 from readerwriterlock import rwlock
 import threading
 import time
 
-from game_state.constants import DEFAULT_TRACK_LENGTH
-from game_state.state import GameState, Player
+from game_state.state import GameState
 from game_state.events import (
     BaseEvent,
     EndGameEvent,

@@ -1,2 +1,5 @@
 fastapi
 uvicorn[standard]
+# Required explicitly by the codebase
+pydantic>=2.0
+readerwriterlock>=1.0

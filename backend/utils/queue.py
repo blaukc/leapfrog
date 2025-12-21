@@ -1,13 +1,15 @@
-from typing import Generic, TypeVar, Any
+from typing import Generic, TypeVar
 import queue
 
 T = TypeVar("T")
 
+
 class TypedQueue(Generic[T]):
     """
-    A type-hinted wrapper around the standard library's queue.Queue 
+    A type-hinted wrapper around the standard library's queue.Queue
     with dunder methods for container-like behavior.
     """
+
     def __init__(self, maxsize: int = 0):
         """
         Initialize the queue.
