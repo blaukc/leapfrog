@@ -1,0 +1,20 @@
+blaukc.dev {
+  # Replace with a real email for Let's Encrypt registration
+  tls brandonlau1@hotmail.com
+
+  # API routes -> backend (includes websocket support)
+  handle_path /host* {
+    reverse_proxy backend:8000
+  }
+
+  handle_path /game* {
+    reverse_proxy backend:8000
+  }
+
+  # Everything else -> frontend static server
+  handle {
+    reverse_proxy frontend:80
+  }
+
+  encode zstd gzip
+}
