@@ -3,11 +3,7 @@ blaukc.dev {
   tls brandonlau1@hotmail.com
 
   # API routes -> backend (includes websocket support)
-  handle_path /host* {
-    reverse_proxy backend:8000
-  }
-
-  handle_path /game* {
+  handle_path /api* {
     reverse_proxy backend:8000
   }
 

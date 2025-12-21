@@ -1,10 +1,13 @@
 import { enqueueSnackbar, type VariantType } from "notistack";
 
 // Use Vite-provided env vars when available; fall back to sensible defaults for dev
-const API_URL =
-    (import.meta.env.VITE_API_BASE_URL as string) || "http://127.0.0.1:8000";
-const _WS_BASE =
-    (import.meta.env.VITE_WS_BASE_URL as string) || "ws://127.0.0.1:8000";
+const API_PREFIX = "/leapfrog";
+const API_URL = `${
+    (import.meta.env.VITE_API_BASE_URL as string) || "http://127.0.0.1:8000"
+}${API_PREFIX}`;
+const _WS_BASE = `${
+    (import.meta.env.VITE_WS_BASE_URL as string) || "ws://127.0.0.1:8000"
+}${API_PREFIX}`;
 // Ensure `/game` path exists on the websocket base URL
 export const WS_URL = _WS_BASE.endsWith("/game")
     ? _WS_BASE

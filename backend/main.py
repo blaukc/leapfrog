@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 import random
-from fastapi import Depends, FastAPI, Response, WebSocket, status
+from fastapi import APIRouter, Depends, FastAPI, Response, WebSocket, status
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 import logging
@@ -66,13 +66,16 @@ app.add_middleware(
 )
 
 
+prefix_router = APIRouter(prefix="/leapfrog")
+
+
 def get_state_manager() -> GameManager | None:
     if hasattr(app.state, "state_manager"):
         return app.state.state_manager
     raise RuntimeError("State managers not initialized")
 
 
-@app.get("/game/{game_code}/join", status_code=status.HTTP_200_OK)
+@prefix_router.get("/game/{game_code}/join", status_code=status.HTTP_200_OK)
 async def join_game(
     game_code: str,
     response: Response,
@@ -85,7 +88,7 @@ async def join_game(
     return {"success": False, "message": f"Game code {game_code} does not exist"}
 
 
-@app.post("/host", status_code=status.HTTP_201_CREATED)
+@prefix_router.post("/host", status_code=status.HTTP_201_CREATED)
 async def host_game(
     response: Response, state_manager: GameManager = Depends(get_state_manager)
 ):
@@ -108,7 +111,7 @@ async def host_game(
     }
 
 
-@app.post("/game/{game_code}/create-player", status_code=status.HTTP_200_OK)
+@prefix_router.post("/game/{game_code}/create-player", status_code=status.HTTP_200_OK)
 async def create_player(
     game_code: str,
     payload: CreatePlayerRequest,
@@ -132,7 +135,9 @@ async def create_player(
     return {"success": False, "message": f"Game code {game_code} does not exist"}
 
 
-@app.post("/game/{game_code}/create-spectator", status_code=status.HTTP_200_OK)
+@prefix_router.post(
+    "/game/{game_code}/create-spectator", status_code=status.HTTP_200_OK
+)
 async def create_spectator(
     game_code: str,
     response: Response,
@@ -165,7 +170,7 @@ async def send_game_state(
     await websocket.send_json(game_state.make_websocket_response(websocket_id))
 
 
-@app.websocket("/game/{game_code}")
+@prefix_router.websocket("/game/{game_code}")
 async def game_websocket(
     websocket: WebSocket,
     game_code: str,
@@ -196,3 +201,6 @@ async def game_websocket(
         except Exception as e:
             logger.error(f"Failed to parse event: {e}")
             continue
+
+
+app.include_router(prefix_router)
