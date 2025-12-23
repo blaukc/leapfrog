@@ -65,8 +65,9 @@ const FrogInfo = ({
             flexDirection="column"
             justifyContent="flex-start"
             alignItems="center"
-            spacing={1}
-            borderColor={borderColor.toString()}>
+            spacing={0.5}
+            borderColor={borderColor.toString()}
+            bgcolor={hasMoved ? "rgba(211, 211, 211, 0.2)" : ""}>
             <Grid container flexDirection="column" alignItems="center">
                 <Typography
                     sx={{
@@ -77,8 +78,11 @@ const FrogInfo = ({
                     }}>
                     {frog.name}
                 </Typography>
-                <FrogSprite frog={frog} showName={false} />
-                <span>{hasMoved ? "moved" : "unmoved"}</span>
+                <FrogSprite
+                    frog={frog}
+                    showName={false}
+                    isSleeping={hasMoved}
+                />
             </Grid>
             {frog.is_forward_frog && (
                 <>

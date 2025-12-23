@@ -1,4 +1,4 @@
-import { Box, Grid } from "@mui/material";
+import { Grid } from "@mui/material";
 import type { Frog, Tile } from "../../../api/types";
 import FrogSprite from "./FrogSprite";
 
@@ -6,33 +6,43 @@ interface TileProps {
     idx: number | "FINISH";
     tile: Tile;
     frogs: Frog[];
+    unmovedFrogs: number[];
 }
 
-const GameTile = ({ idx, tile, frogs }: TileProps) => {
+const GameTile = ({ idx, tile, frogs, unmovedFrogs }: TileProps) => {
     return (
         <Grid
             container
             flexDirection="column"
-            height="150px"
+            height="225px"
             width="75px"
             justifyContent="flex-end"
-            flexShrink={0}>
-            <Box height="75px" width="75px" borderBottom={1} overflow="visible">
-                <Grid
-                    container
-                    height="100%"
-                    width="100%"
-                    flexDirection="column-reverse"
-                    position="relative"
-                    alignItems="center"
-                    overflow="visible"
-                    wrap="nowrap">
-                    {tile.frogs.map((frogIdx) => {
-                        const frog = frogs[frogIdx];
-                        return <FrogSprite frog={frog} />;
-                    })}
-                </Grid>
-            </Box>
+            flexShrink={0}
+            wrap="nowrap"
+            overflow="visible">
+            <Grid
+                container
+                height="100%"
+                width="100%"
+                flexDirection="column-reverse"
+                position="relative"
+                alignItems="center"
+                overflow="visible"
+                wrap="nowrap"
+                borderBottom={1}
+                flexGrow={1}>
+                {tile.frogs.map((frogIdx, pos) => {
+                    const frog = frogs[frogIdx];
+                    return (
+                        <FrogSprite
+                            frog={frog}
+                            zIndex={tile.frogs.length - pos}
+                            marginBottom={pos === 0 ? -10 : -40}
+                            isSleeping={!unmovedFrogs.includes(frog.idx)}
+                        />
+                    );
+                })}
+            </Grid>
             <span>{idx}</span>
         </Grid>
     );

@@ -57,8 +57,21 @@
   animation: breathe 2s steps(8) infinite;
 }
 
+.eyes-sleeping {
+  background-image: url("/tummy_and_eyes_sleeping.png");
+  /* 8 frames = 8 steps */
+  animation: breathe 2s steps(8) infinite;
+
+}
+
 .body-mask {
   mask-image: url("/body_mask.png");
+  /* 8 frames = 8 steps */
+  animation: breathe-mask 2s steps(8) infinite;
+}
+
+.body-mask-sleeping {
+  mask-image: url("/body_mask_sleeping.png");
   /* 8 frames = 8 steps */
   animation: breathe-mask 2s steps(8) infinite;
 }

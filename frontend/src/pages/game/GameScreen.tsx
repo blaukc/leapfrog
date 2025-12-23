@@ -33,7 +33,7 @@ const GameScreen = ({
             flexDirection="column"
             justifyContent="flex-start"
             wrap="nowrap"
-            spacing={10}>
+            spacing={5}>
             <Grid container justifyContent="space-between" height="150px">
                 <Grid
                     container
@@ -66,6 +66,7 @@ const GameScreen = ({
                         idx={idx === gameState.num_tiles - 1 ? "FINISH" : idx}
                         tile={tile}
                         frogs={gameState.frogs}
+                        unmovedFrogs={gameState.unmoved_frogs}
                     />
                 ))}
             </Grid>
