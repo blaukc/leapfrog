@@ -20,7 +20,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd ~/leapfrog
-            git pull origin main
+            git pull origin master
             make down
             make up-prod
             docker system prune -f  # Cleans up old images to save space
