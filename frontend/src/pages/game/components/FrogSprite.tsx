@@ -8,10 +8,25 @@ interface FrogSpriteProps {
 
 const FrogSprite = ({ frog, showName = true }: FrogSpriteProps) => {
     return (
-        <Grid height="25px" width="25px" overflow="visible">
-            <Box
-                height="25px"
-                width="25px"
+        <Grid height="32px" width="32px" overflow="visible">
+            <div
+                className="frog eyes"
+                style={{
+                    transform: frog.is_forward_frog
+                        ? "scaleX(-1)"
+                        : "scaleX(1)",
+                }}></div>
+            <div
+                className="frog body-mask"
+                style={{
+                    backgroundColor: frog.color,
+                    transform: frog.is_forward_frog
+                        ? "scaleX(-1)"
+                        : "scaleX(1)",
+                }}></div>
+            {/* <Box
+                height="32px"
+                width="32px"
                 position="relative"
                 bgcolor={`${frog.color}`}
                 overflow="visible">
@@ -29,7 +44,7 @@ const FrogSprite = ({ frog, showName = true }: FrogSpriteProps) => {
                         {frog.name}
                     </span>
                 )}
-            </Box>
+            </Box> */}
         </Grid>
     );
 };

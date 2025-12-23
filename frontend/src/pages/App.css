@@ -43,3 +43,45 @@
 .read-the-docs {
   color: #888;
 }
+
+.frog {
+  width: 64px;
+  height: 64px;
+  position: absolute;
+  image-rendering: pixelated;
+}
+
+.eyes {
+  background-image: url("/tummy_and_eyes.png");
+  /* 8 frames = 8 steps */
+  animation: breathe 2s steps(8) infinite;
+}
+
+.body-mask {
+  mask-image: url("/body_mask.png");
+  /* 8 frames = 8 steps */
+  animation: breathe-mask 2s steps(8) infinite;
+}
+
+@keyframes breathe {
+  from {
+    background-position: 0px;
+  }
+
+  to {
+    background-position: -512px;
+  }
+}
+
+@keyframes breathe-mask {
+  from {
+    -webkit-mask-position: 0px 0px;
+    mask-position: 0px 0px;
+  }
+
+  to {
+    /* Moves the mask to the last frame */
+    -webkit-mask-position: -512px 0px;
+    mask-position: -512px 0px;
+  }
+}
