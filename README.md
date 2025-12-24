@@ -94,7 +94,7 @@ docker compose --env-file .env.production up --build -d
  
  ## TODO
 
- - [ ] make frogs cuter
+ - [x] make frogs cuter
  - [ ] support mobile views
  - [ ] tutorial/help
  - [ ] support spectator view
@@ -104,3 +104,5 @@ docker compose --env-file .env.production up --build -d
  - [ ] player customization (color/avatar)
  - [ ] host can kick players
  - [ ] light/dark theme
+ - [ ] notification when your turn
+ - [ ] make game updates only show for 10-15 seconds then disappear, button to open up log
