@@ -34,7 +34,11 @@ const GameScreen = ({
             justifyContent="flex-start"
             wrap="nowrap"
             spacing={5}>
-            <Grid container justifyContent="space-between" height="150px">
+            <Grid
+                container
+                justifyContent="space-between"
+                height="150px"
+                wrap="nowrap">
                 <Grid
                     container
                     wrap="nowrap"
