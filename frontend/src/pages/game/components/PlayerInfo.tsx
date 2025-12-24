@@ -28,7 +28,14 @@ const PlayerInfo = ({
     });
 
     return (
-        <Grid container flexDirection="column" alignItems="start" width="150px">
+        <Grid
+            container
+            flexDirection="column"
+            alignItems="start"
+            width="150px"
+            wrap="nowrap"
+            overflow="visible"
+            flexShrink={0}>
             <Typography
                 variant="subtitle1"
                 color={isCurrentTurn ? "primary" : "none"}

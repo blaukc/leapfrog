@@ -22,7 +22,7 @@ const GameActions = ({
     };
 
     return (
-        <Grid container justifyContent="space-evenly" padding="2em">
+        <Grid container justifyContent="space-evenly" paddingBottom="20px">
             <Badge
                 badgeContent={`${7 - unmovedFrogs.length}/5`}
                 color="primary">

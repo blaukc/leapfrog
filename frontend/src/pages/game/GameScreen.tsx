@@ -3,12 +3,11 @@ import type { GameState } from "../../api/types";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { useMemo } from "react";
 import GameTile from "./components/GameTile";
-import PlayerInfo from "./components/PlayerInfo";
 import GameActions from "./components/GameActions";
 import FrogInfo from "./components/FrogInfo";
 import { getPlayerId } from "../../common/utils";
-import GameUpdates from "./components/GameUpdates";
 import EndGameStatsView from "./components/EndGameStatsView";
+import GameHUD from "./components/GameHUD";
 
 interface GameScreenProps {
     sendJsonMessage: SendJsonMessage;
@@ -31,38 +30,15 @@ const GameScreen = ({
         <Grid
             container
             flexDirection="column"
-            justifyContent="flex-start"
+            justifyContent="space-between"
             wrap="nowrap"
-            spacing={5}>
+            height="100%">
             <Grid
                 container
                 justifyContent="space-between"
-                height="150px"
+                height="200px"
                 wrap="nowrap">
-                <Grid
-                    container
-                    wrap="nowrap"
-                    spacing={2}
-                    overflow="auto"
-                    flexGrow={1}>
-                    {gameState.player_order
-                        .map((playerId) => gameState.players[playerId])
-                        .map((player) => (
-                            <PlayerInfo
-                                player={player}
-                                frogs={gameState.frogs}
-                                isCurrentTurn={
-                                    player.player_id === gameState.current_turn
-                                }
-                                isPlayer={player.player_id === playerId}
-                            />
-                        ))}
-                </Grid>
-                <GameUpdates
-                    updates={gameState.updates}
-                    players={gameState.players}
-                    frogs={gameState.frogs}
-                />
+                <GameHUD gameState={gameState} playerId={playerId} />
             </Grid>
             <Grid container wrap="nowrap" spacing={1} overflow="auto">
                 {gameState.track.map((tile, idx) => (

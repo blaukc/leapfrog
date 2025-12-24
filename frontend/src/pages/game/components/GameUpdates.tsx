@@ -5,9 +5,16 @@ interface GameUpdatesProps {
     updates: Update[];
     players: Record<string, Player>;
     frogs: Frog[];
+    maxWidth?: string;
+    width?: string;
 }
 
-const GameUpdates = ({ updates, players, frogs }: GameUpdatesProps) => {
+const GameUpdates = ({
+    updates,
+    players,
+    frogs,
+    ...otherProps
+}: GameUpdatesProps) => {
     const getColoredFrogName = (frog_idx: number) => {
         const frog = frogs[frog_idx];
         return <span style={{ color: frog.color }}>{frog.name}</span>;
@@ -108,7 +115,7 @@ const GameUpdates = ({ updates, players, frogs }: GameUpdatesProps) => {
             height="100%"
             overflow="auto"
             wrap="nowrap"
-            width="400px">
+            {...otherProps}>
             {[...updates].reverse().map((update) => formatUpdate(update))}
         </Grid>
     );
