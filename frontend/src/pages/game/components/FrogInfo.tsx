@@ -4,9 +4,12 @@ import {
     ButtonGroup,
     Divider,
     Grid,
+    IconButton,
+    Tooltip,
     Typography,
     useTheme,
 } from "@mui/material";
+import InfoOutlineIcon from "@mui/icons-material/InfoOutline";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { makeLegBetEvent, makeOverallBetEvent } from "../../../api/events";
 import type { Frog, LegBet, Player } from "../../../api/types";
@@ -23,6 +26,11 @@ interface FrogInfoProps {
     legBets: LegBet[];
     isCurrentTurn: boolean;
 }
+
+const OVERALL_BET_SUMMARY = `Predict the race winner or loser to earn 8, 5, 3, 2, or 1 Gold based on how early you placed your bet. 
+Correct guesses pay out according to your position in the deck, while any incorrect guess results in a 1 Gold penalty.`;
+const LEG_BET_SUMMARY = `Bet on a frog to lead the leg: finishing 1st or 2nd pays out, but any lower rank incurs a -1 penalty. 
+Payouts diminish (e.g., from 5 to 2 for 1st place) as more bets are taken, rewarding those who commit earlier.`;
 
 const FrogInfo = ({
     player,
@@ -42,7 +50,7 @@ const FrogInfo = ({
 
     const handleOverallBet = (betType: "winner" | "loser") => {
         sendJsonMessage(
-            makeOverallBetEvent(gameCode, websocketId, frog.idx, betType)
+            makeOverallBetEvent(gameCode, websocketId, frog.idx, betType),
         );
     };
 
@@ -51,8 +59,8 @@ const FrogInfo = ({
         overallBet === "winner"
             ? theme.palette.success.main
             : overallBet === "loser"
-            ? theme.palette.error.main
-            : theme.palette.grey;
+              ? theme.palette.error.main
+              : theme.palette.grey;
 
     return (
         <Grid
@@ -87,6 +95,19 @@ const FrogInfo = ({
             {frog.is_forward_frog && (
                 <>
                     <Divider sx={{ width: "100%" }} />
+                    <Grid
+                        container
+                        alignItems="center"
+                        width="100%"
+                        justifyContent="center"
+                        gap="5px">
+                        <Typography>Overall Bet</Typography>
+                        <Tooltip title={OVERALL_BET_SUMMARY}>
+                            <IconButton size="small" style={{ padding: 0 }}>
+                                <InfoOutlineIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Grid>
                     <ButtonGroup
                         variant="outlined"
                         size="small"
@@ -147,6 +168,13 @@ const FrogInfo = ({
                                             {legBets[0].winnings[2]}
                                         </Typography>
                                     </Grid>
+                                    <Tooltip title={LEG_BET_SUMMARY}>
+                                        <IconButton
+                                            size="small"
+                                            style={{ padding: 0 }}>
+                                            <InfoOutlineIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
                                 </Grid>
                             </>
                         )}

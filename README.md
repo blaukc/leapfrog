@@ -95,8 +95,10 @@ docker compose --env-file .env.production up --build -d
  ## TODO
 
  - [x] make frogs cuter
- - [ ] support mobile views
+ - [x] support mobile views
  - [ ] tutorial/help
+ - [ ] show how far frogs can jump
+ - [ ] show overall bet winnings
  - [ ] support spectator view
  - [ ] enable spectator tiles
  - [ ] lobby settings

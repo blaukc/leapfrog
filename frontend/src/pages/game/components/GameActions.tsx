@@ -1,4 +1,5 @@
-import { Badge, Button, Grid } from "@mui/material";
+import { Badge, Button, Grid, IconButton, Tooltip } from "@mui/material";
+import InfoOutlineIcon from "@mui/icons-material/InfoOutline";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { makeMoveFrogEvent } from "../../../api/events";
 
@@ -9,6 +10,9 @@ interface GameActionsProps {
     unmovedFrogs: number[];
     isCurrentTurn: boolean;
 }
+
+const MOVE_FROG_SUMMARY = `Move a random frog 1–3 steps; frogs move in the direction they face, carrying any frogs stacked on top with them. 
+This action earns you 1 Gold immediately and brings the current leg closer to its conclusion.`;
 
 const GameActions = ({
     sendJsonMessage,
@@ -22,7 +26,7 @@ const GameActions = ({
     };
 
     return (
-        <Grid container justifyContent="space-evenly" paddingBottom="20px">
+        <Grid container justifyContent="center" paddingBottom="20px">
             <Badge
                 badgeContent={`${7 - unmovedFrogs.length}/5`}
                 color="primary">
@@ -31,7 +35,18 @@ const GameActions = ({
                     color="primary"
                     onClick={handleMoveFrog}
                     disabled={!isCurrentTurn}>
-                    Move Frog
+                    <Grid
+                        container
+                        justifyContent="center"
+                        alignItems="center"
+                        gap="5px">
+                        MOVE FROG
+                        <Tooltip title={MOVE_FROG_SUMMARY}>
+                            <IconButton size="small" style={{ padding: 0 }}>
+                                <InfoOutlineIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Grid>
                 </Button>
             </Badge>
         </Grid>
