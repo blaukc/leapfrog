@@ -263,7 +263,6 @@ class GameState:
             player = self.players[bet.player_id]
             if bet.frog_idx != target_frog:
                 player.gold -= self.overall_bet_loss
-                print(self.overall_bet_loss * -1)
                 self.updates.append(
                     OverallBetWinningsUpdate(
                         player_id=bet.player_id,

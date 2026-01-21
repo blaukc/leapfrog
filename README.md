@@ -97,12 +97,12 @@ docker compose --env-file .env.production up --build -d
  - [x] make frogs cuter
  - [x] support mobile views
  - [ ] tutorial/help
- - [ ] show how far frogs can jump
- - [ ] show overall bet winnings
+ - [x] show how far frogs can jump
+ - [x] show overall bet winnings
  - [ ] support spectator view
  - [ ] enable spectator tiles
  - [ ] lobby settings
- - [ ] kill lobby after inactivity
+ - [x] kill lobby after inactivity
  - [ ] player customization (color/avatar)
  - [ ] host can kick players
  - [ ] light/dark theme

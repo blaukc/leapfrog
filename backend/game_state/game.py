@@ -1,4 +1,6 @@
+import asyncio
 from dataclasses import asdict, dataclass
+import logging
 import queue
 from fastapi import WebSocket
 from readerwriterlock import rwlock
@@ -22,6 +24,12 @@ from game_state.events import (
 from utils.queue import TypedQueue
 
 
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+
 class Game:
     def __init__(
         self,
@@ -36,7 +44,7 @@ class Game:
         self.event_queue = TypedQueue[BaseEvent]()
         self._state_update_queue = state_update_queue
 
-    def process_event(self, event: BaseEvent):
+    async def process_event(self, event: BaseEvent):
         match event:
             case PlayerJoinEvent():
                 self._game_state.add_connection(
@@ -74,18 +82,19 @@ class Game:
             case EndGameEvent():
                 self._game_state.to_lobby()
 
-        self.push_game_state()
+        self._last_update_time = time.time()
+        await self.push_game_state()
 
-    def push_game_state(self):
-        print(self._game_state)
-        self._state_update_queue.put(self._game_state)
+    async def push_game_state(self):
+        logger.info(f"Updating game state: ${self.game_code}")
+        await self._state_update_queue.put(self._game_state)
 
-    def run(self):
+    async def run(self):
         while True:
             try:
-                event = self.event_queue.get(timeout=1)
-                print("got eVENET", event)
-                self.process_event(event)
+                event = await self.event_queue.get()
+                logger.info(f"Event ${event.type} received in game ${self.game_code}")
+                await self.process_event(event)
             except queue.Empty:
                 continue
 
@@ -96,16 +105,16 @@ class GameManager:
     """
 
     def __init__(self):
-        self.lock = rwlock.RWLockWrite()
+        self.lock = asyncio.Lock()
         self._state_update_queue = TypedQueue[GameState]()
-        self._event_queues: dict[str, TypedQueue[BaseEvent]] = {}
-        self._game_threads: dict[str, threading.Thread] = {}
+        self._games: dict[str, Game] = {}
+        self._game_tasks: dict[str, asyncio.Task] = {}
         self._game_states: dict[str, GameState] = {}
         self._websockets: dict[str, dict[str, WebSocket]] = {}
 
-    def create_game_state(self, game_code: str) -> bool:
-        with self.lock.gen_wlock():
-            if game_code in self._game_threads:
+    async def create_game_state(self, game_code: str) -> bool:
+        async with self.lock:
+            if game_code in self._game_tasks:
                 return False
 
             initial_state = GameState(game_code=game_code)
@@ -113,47 +122,81 @@ class GameManager:
             self._websockets[game_code] = {}
 
             game = Game(game_code, initial_state, self._state_update_queue)
-            t = threading.Thread(target=game.run, daemon=True)
-            t.start()
+            game_task = asyncio.create_task(game.run())
 
-            self._game_threads[game_code] = t
-            self._event_queues[game_code] = game.event_queue
+            self._game_tasks[game_code] = game_task
+            self._games[game_code] = game
             return True
 
-    def get_game_state(self, game_code: str) -> GameState | None:
-        with self.lock.gen_rlock():
+    async def get_game_state(self, game_code: str) -> GameState | None:
+        async with self.lock:
             state = self._game_states.get(game_code, None)
             if state is None:
                 return None
             return state
 
-    def add_websocket(
+    async def add_websocket(
         self, game_code: str, websocket_id: str, websocket: WebSocket
     ) -> bool:
-        with self.lock.gen_wlock():
+        async with self.lock:
             if game_code not in self._websockets:
                 return False
             self._websockets[game_code][websocket_id] = websocket
             return True
 
-    def add_event(self, event: BaseEvent) -> bool:
-        with self.lock.gen_rlock():
-            event_queue = self._event_queues.get(event.game_code)
-            if event_queue is None:
+    async def add_event(self, event: BaseEvent) -> bool:
+        async with self.lock:
+            game = self._games.get(event.game_code)
+            if game is None:
                 return False
-            event_queue.put(event)
+            await game.event_queue.put(event)
             return True
+
+    async def _purge_game(self, game_code: str) -> None:
+        """
+        This should always be called under a function that has a write lock to the GameManager.
+        """
+        logger.info(f"Stopping game task ${game_code}")
+        game_task = self._game_tasks[game_code]
+        game_task.cancel()
+        logger.info(f"Purging game ${game_code}")
+        del self._game_tasks[game_code]
+        del self._game_states[game_code]
+        logger.info(f"Closing web sockets in game ${game_code}")
+        websockets = self._websockets[game_code]
+        for ws in websockets.values():
+            await ws.close()
+        del self._games[game_code]
+        logger.info(f"Purged game ${game_code}")
+
+    async def _purge_games(self, inactive_threshold: float) -> None:
+        async with self.lock:
+            current_time = time.time()
+            for game_code, game_object in list(self._games.items()):
+                if game_object._last_update_time < current_time - inactive_threshold:
+                    await self._purge_game(game_code)
+
+    async def purge_games(
+        self, interval: int = 5 * 60, inactive_threshold: float = 60 * 60
+    ):
+        while True:
+            await self._purge_games(inactive_threshold)
+            await asyncio.sleep(interval)
 
     async def run(self):
         while True:
+            await asyncio.sleep(0.01)
             try:
-                new_state = self._state_update_queue.get(timeout=1)
-                with self.lock.gen_wlock():
+                new_state = await self._state_update_queue.get()
+                async with self.lock:
                     self._game_states[new_state.game_code] = new_state
                     websockets = self._websockets.get(new_state.game_code, {})
                     for websocket_id, websocket in websockets.items():
                         try:
-                            print(new_state.make_websocket_response(websocket_id))
+                            print(
+                                "websocket response: ",
+                                new_state.make_websocket_response(websocket_id),
+                            )
                             await websocket.send_json(
                                 new_state.make_websocket_response(websocket_id)
                             )

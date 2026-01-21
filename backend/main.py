@@ -7,6 +7,8 @@ import logging
 import threading
 import uuid
 
+import starlette
+
 from api.requests import CreatePlayerRequest
 from game_state.events import Event, EventAdapter, PlayerJoinEvent, SpectatorJoinEvent
 from game_state.game import GameManager
@@ -22,21 +24,28 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("Lifespan setup started")
 
-    app.state.state_manager = GameManager()
-    t_state_manager = threading.Thread(
-        target=asyncio.run, args=(app.state.state_manager.run(),), daemon=True
-    )
-    t_state_manager.start()
+    manager = GameManager()
+    app.state.state_manager = manager
+    game_loop_task = asyncio.create_task(manager.run())
+    purge_task = asyncio.create_task(manager.purge_games())
 
     logger.info("Lifespan setup completed")
 
     yield
 
     logger.info("Lifespan teardown started")
+
+    game_loop_task.cancel()
+    purge_task.cancel()
+
+    try:
+        await asyncio.gather(game_loop_task, purge_task, return_exceptions=True)
+    except asyncio.CancelledError:
+        pass
+
     if hasattr(app.state, "state_manager"):
         del app.state.state_manager
 
-    t_state_manager.join(timeout=1)
     logger.info("Lifespan teardown completed")
 
 
@@ -81,7 +90,7 @@ async def join_game(
     response: Response,
     state_manager: GameManager = Depends(get_state_manager),
 ):
-    if state_manager.get_game_state(game_code) is not None:
+    if await state_manager.get_game_state(game_code) is not None:
         return {"success": True, "message": f"Joined game {game_code} successfully"}
 
     response.status_code = status.HTTP_404_NOT_FOUND
@@ -96,7 +105,7 @@ async def host_game(
     num_tries = 5
     while num_tries > 0:
         game_code = f"{random.randint(0, 999999):06d}"
-        if state_manager.create_game_state(game_code):
+        if await state_manager.create_game_state(game_code):
             break
 
         num_tries -= 1
@@ -118,9 +127,9 @@ async def create_player(
     response: Response,
     state_manager: GameManager = Depends(get_state_manager),
 ):
-    if state_manager.get_game_state(game_code) is not None:
+    if await state_manager.get_game_state(game_code) is not None:
         websocket_id = str(uuid.uuid4())[:8]
-        state_manager.add_event(
+        await state_manager.add_event(
             PlayerJoinEvent(
                 game_code=game_code, websocket_id=websocket_id, player_name=payload.name
             )
@@ -143,9 +152,9 @@ async def create_spectator(
     response: Response,
     state_manager: GameManager = Depends(get_state_manager),
 ):
-    if state_manager.get_game_state(game_code) is not None:
+    if await state_manager.get_game_state(game_code) is not None:
         websocket_id = str(uuid.uuid4())[:8]
-        state_manager.add_event(
+        await state_manager.add_event(
             SpectatorJoinEvent(gameCode=game_code, websocket_id=websocket_id)
         )
         return {
@@ -161,7 +170,7 @@ async def create_spectator(
 async def send_game_state(
     websocket: WebSocket, state_manager: GameManager, game_code: str, websocket_id: str
 ):
-    game_state = state_manager.get_game_state(game_code)
+    game_state = await state_manager.get_game_state(game_code)
     if game_state is None:
         print("no game")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
@@ -182,14 +191,18 @@ async def game_websocket(
 
     websocket_id = websocket.query_params["websocket_id"]
     await websocket.accept()
-    state_manager.add_websocket(
+    await state_manager.add_websocket(
         game_code=game_code, websocket_id=websocket_id, websocket=websocket
     )
 
     await send_game_state(websocket, state_manager, game_code, websocket_id)
 
     while True:
-        event_dict = await websocket.receive_json()
+        try:
+            event_dict = await websocket.receive_json()
+        except starlette.websockets.WebSocketDisconnect:
+            logger.info(f"Player {websocket_id} disconnected normally.")
+            return
         try:
             print(event_dict)
             parsed_event: Event = EventAdapter.validate_python(
@@ -197,7 +210,7 @@ async def game_websocket(
             )
             print(parsed_event)
             parsed_event.websocket_id = websocket_id
-            state_manager.add_event(parsed_event)
+            await state_manager.add_event(parsed_event)
         except Exception as e:
             logger.error(f"Failed to parse event: {e}")
             continue
