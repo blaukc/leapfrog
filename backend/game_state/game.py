@@ -77,7 +77,9 @@ class Game:
             case SpectatorTileEvent():
                 if self._game_state.check_turn(event.websocket_id):
                     self._game_state.place_spectator_tile(
-                        event.websocket_id, event.tile_idx
+                        event.websocket_id,
+                        event.tile_idx,
+                        "forward" if event.displacement == 1 else "backward",
                     )
             case EndGameEvent():
                 self._game_state.to_lobby()

@@ -64,6 +64,22 @@ const GameUpdates = ({
                     </Typography>
                 );
             }
+            case "spectator_tile_winnings": {
+                const player = players[update.player_id];
+                const name = player.connection.name;
+                return (
+                    <>
+                        <Typography variant="body2" textAlign="left">
+                            {`${name} gained 1 gold from their spectator tile.`}
+                        </Typography>
+                        <Typography variant="body2" textAlign="left">
+                            {getColoredFrogName(update.frog_idx)}
+                            {` stepped on ${name}'s spectator tile and moved
+                         from tile ${update.from_tile} to tile ${update.to_tile}.`}
+                        </Typography>
+                    </>
+                );
+            }
             case "leg_bet_winnings": {
                 const player = players[update.player_id];
                 const name = player.connection.name;
@@ -96,9 +112,15 @@ const GameUpdates = ({
                 const winner = players[update.player_rankings[0]];
                 const name = winner.connection.name;
                 return (
-                    <Typography
-                        variant="body2"
-                        textAlign="left">{`The game has ended, ${name} has won the game!`}</Typography>
+                    <>
+                        <Typography
+                            variant="body2"
+                            textAlign="left">{`The game has ended, ${name} has won the game!`}</Typography>
+                        <Typography variant="body2" textAlign="left">
+                            {getColoredFrogName(update.winning_frog_idx)}
+                            {` has crossed the finish line and won the race!`}
+                        </Typography>
+                    </>
                 );
             }
             default:

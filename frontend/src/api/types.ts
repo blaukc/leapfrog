@@ -51,6 +51,14 @@ export const PlayerSpectatorTileUpdateSchema = z.object({
     direction: z.number().int(),
 });
 
+export const SpectatorTileWinningsUpdateSchema = z.object({
+    type: z.literal("spectator_tile_winnings"),
+    frog_idx: z.number().int(),
+    from_tile: z.number().int(),
+    to_tile: z.number().int(),
+    player_id: z.string(),
+});
+
 export const LegBetWinningsUpdateSchema = z.object({
     type: z.literal("leg_bet_winnings"),
     player_id: z.string(),
@@ -71,6 +79,7 @@ export const EndGameUpdateSchema = z.object({
     type: z.literal("end_game_update"),
     player_id: z.string(),
     player_rankings: z.array(z.string()),
+    winning_frog_idx: z.number().int(),
 });
 
 export const UpdateSchema = z.discriminatedUnion("type", [
@@ -78,6 +87,7 @@ export const UpdateSchema = z.discriminatedUnion("type", [
     PlayerLegBetUpdateSchema,
     PlayerOverallBetUpdateSchema,
     PlayerSpectatorTileUpdateSchema,
+    SpectatorTileWinningsUpdateSchema,
     LegBetWinningsUpdateSchema,
     OverallBetWinningsUpdateSchema,
     EndGameUpdateSchema,
@@ -115,6 +125,9 @@ export type Frog = z.infer<typeof FrogSchema>;
 
 export const SpectatorTileSchema = z.object({
     player_id: z.string().describe("Player who placed the spectator tile"),
+    player_name: z
+        .string()
+        .describe("Name of player who placed the spectator tile"),
     direction: z
         .number()
         .int()
@@ -127,6 +140,9 @@ export const TileSchema = z.object({
     frogs: z
         .array(z.number().int())
         .describe("Frog indices on this tile (numbers)"),
+    can_spectator_tile_be_placed: z
+        .boolean()
+        .describe("Whether spectator tile can be placed here"),
     spectator_tile: SpectatorTileSchema.nullable().optional(),
 });
 export type Tile = z.infer<typeof TileSchema>;
@@ -148,7 +164,7 @@ export type OverallBet = z.infer<typeof OverallBetSchema>;
 export const PlayerSchema = z.object({
     player_id: z.string().describe("The unique ID of the player."),
     connection: ConnectionSchema.describe(
-        "Connection info associated with the player."
+        "Connection info associated with the player.",
     ),
     num_frogs: z
         .number()
@@ -223,7 +239,7 @@ export const GameStateSchema = z.object({
         .describe("Winnings array used for overall bets"),
     overall_bet_loss: z.number().int(),
     end_game_stats: EndGameStatsSchema.describe(
-        "Stats from the end of the game, if present."
+        "Stats from the end of the game, if present.",
     ),
 });
 export type GameState = z.infer<typeof GameStateSchema>;
@@ -234,7 +250,7 @@ export const WebsocketResponseSchema = z.object({
         .enum(["player", "spectator", "unknown"])
         .describe("Type of connection for this websocket."),
     game_state: GameStateSchema.describe(
-        "Serialized GameState returned to the client."
+        "Serialized GameState returned to the client.",
     ),
 });
 export type WebsocketResponse = z.infer<typeof WebsocketResponseSchema>;

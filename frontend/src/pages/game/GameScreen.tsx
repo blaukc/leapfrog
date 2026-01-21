@@ -43,10 +43,18 @@ const GameScreen = ({
             <Grid container wrap="nowrap" spacing={1} overflow="auto">
                 {gameState.track.map((tile, idx) => (
                     <GameTile
+                        gameCode={gameCode}
+                        websocketId={websocketId}
+                        sendJsonMessage={sendJsonMessage}
                         idx={idx === gameState.num_tiles - 1 ? "FINISH" : idx}
                         tile={tile}
                         frogs={gameState.frogs}
                         unmovedFrogs={gameState.unmoved_frogs}
+                        hasPlayerPlacedSpectatorTile={
+                            player.spectator_tile_idx != -1
+                        }
+                        isCurrentTurn={isCurrentTurn}
+                        gameState={gameState.state}
                     />
                 ))}
             </Grid>

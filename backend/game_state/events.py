@@ -71,6 +71,9 @@ class SpectatorTileEvent(BaseEvent):
     tile_idx: int = Field(
         ..., description="Index of the tile to place spectator tile", alias="tileIdx"
     )
+    displacement: int = Field(
+        ..., description="Displacement for frog landing on this tile"
+    )
 
 
 class EndGameEvent(BaseEvent):

@@ -17,7 +17,7 @@ export const makeMoveFrogEvent = (gameCode: string, websocketId: string) => {
 export const makeLegBetEvent = (
     gameCode: string,
     websocketId: string,
-    frogIdx: number
+    frogIdx: number,
 ) => {
     return {
         type: "leg_bet",
@@ -31,7 +31,7 @@ export const makeOverallBetEvent = (
     gameCode: string,
     websocketId: string,
     frogIdx: number,
-    betType: "winner" | "loser"
+    betType: "winner" | "loser",
 ) => {
     return {
         type: "overall_bet",
@@ -45,13 +45,15 @@ export const makeOverallBetEvent = (
 export const makeSpectatorTileEvent = (
     gameCode: string,
     websocketId: string,
-    tileIdx: number
+    tileIdx: number,
+    displacement: number,
 ) => {
     return {
         type: "spectator_tile",
         gameCode: gameCode,
         websocketId: websocketId,
         tileIdx: tileIdx,
+        displacement: displacement,
     };
 };
 

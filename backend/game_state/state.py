@@ -10,6 +10,7 @@ from game_state.updates import (
     PlayerMoveFrogUpdate,
     PlayerOverallBetUpdate,
     PlayerSpectatorTileUpdate,
+    SpectatorTileWinningsUpdate,
     Update,
 )
 from game_state.constants import (
@@ -43,12 +44,14 @@ class Frog:
 @dataclass
 class SpectatorTile:
     player_id: str
+    player_name: str
     direction: int
 
 
 @dataclass
 class Tile:
     frogs: list[int] = field(default_factory=list)
+    can_spectator_tile_be_placed: bool = True
     spectator_tile: SpectatorTile | None = None
 
     @property
@@ -59,10 +62,13 @@ class Tile:
         self.frogs.append(frog_idx)
 
     def place_spectator_tile(
-        self, player_id: str, direction: Literal["forward", "backward"]
+        self,
+        player_id: str,
+        player_name: str,
+        direction: Literal["forward", "backward"],
     ):
         self.spectator_tile = SpectatorTile(
-            player_id, 1 if direction == "forward" else -1
+            player_id, player_name, 1 if direction == "forward" else -1
         )
 
     @property
@@ -231,10 +237,35 @@ class GameState:
                     frog_order.append(frog_idx)
         return frog_order
 
+    def _reset_spectator_tiles(self):
+        for tile in self.track:
+            tile.spectator_tile = None
+        for player in self.players.values():
+            player.clear_spectator_tile()
+
+    def _update_spectator_tile_availability(self):
+        for idx, tile in enumerate(self.track):
+            if idx == 0 or idx == self.num_tiles - 1:
+                # first and last tile
+                tile.can_spectator_tile_be_placed = False
+            elif tile.has_spectator_tile or len(tile.frogs) > 0:
+                # there is something already there
+                tile.can_spectator_tile_be_placed = False
+            elif (
+                self.track[idx - 1].has_spectator_tile
+                or self.track[idx + 1].has_spectator_tile
+            ):
+                # there are spectator tiles on the left and right
+                tile.can_spectator_tile_be_placed = False
+            else:
+                tile.can_spectator_tile_be_placed = True
+
     def _next_turn(self):
         if self.current_turn == "":
             self.current_turn = self.player_order[0]
             return
+
+        self._update_spectator_tile_availability()
 
         num_players = len(self.players)
         next_idx = (self.player_order.index(self.current_turn) + 1) % num_players
@@ -314,13 +345,17 @@ class GameState:
         self._calculate_leg_bets()
         self._reset_leg_bets()
 
-    def _calculate_winner(self):
+        self._reset_spectator_tiles()
+        self._update_spectator_tile_availability()
+
+    def _calculate_winner(self, winning_frog_idx: int):
         sorted_players = list(self.players.values())
         sorted_players.sort(key=lambda p: p.gold, reverse=True)
         self.updates.append(
             EndGameUpdate(
                 player_id="",
                 player_rankings=[player.player_id for player in sorted_players],
+                winning_frog_idx=winning_frog_idx,
             )
         )
         self.end_game_stats = EndGameStats(winner=sorted_players[0])
@@ -331,7 +366,7 @@ class GameState:
         self._calculate_overall_bets(winning_frog, "winner")
         self._calculate_overall_bets(losing_frog, "loser")
 
-        self._calculate_winner()
+        self._calculate_winner(winning_frog)
         self.current_turn = ""
         self.state = "ended"
 
@@ -342,7 +377,7 @@ class GameState:
                 return tile_idx, tile.frogs.index(frog_idx)
         raise ValueError("Frog not found on track")
 
-    def _move_frog(self, frog_idx: int, move_distance: int | None = None) -> None:
+    def _move_frog(self, frog_idx: int, move_distance: int | None = None) -> int:
         frog = self.frogs[frog_idx]
         if move_distance is None:
             move_distance = random.choice(frog.moves)
@@ -356,17 +391,28 @@ class GameState:
         self.track[next_tile].frogs.extend(frog_pile)
         return next_tile
 
-    def _use_spectator_tile(self, tile_idx: int) -> int:
-        tile = self.track[tile_idx]
+    def _use_spectator_tile(self, from_tile: int) -> int:
+        tile = self.track[from_tile]
         assert tile.has_frogs, "There needs to be frogs to use spectator tile"
 
         if not tile.has_spectator_tile:
-            return tile_idx
+            return from_tile
 
         bottom_frog = tile.frogs[0]
-        self._move_frog(bottom_frog, tile.spectator_tile.direction)
+        moved_to_tile = self._move_frog(bottom_frog, tile.spectator_tile.direction)
         player_id = tile.spectator_tile.player_id
         self.players[player_id].gold += 1
+
+        self.updates.append(
+            SpectatorTileWinningsUpdate(
+                frog_idx=bottom_frog,
+                from_tile=from_tile,
+                to_tile=moved_to_tile,
+                player_id=player_id,
+            )
+        )
+
+        return moved_to_tile
 
     def _initialize_frog_position(self):
         random_frog_iter = iter(random.sample(self.frogs, len(self.frogs)))
@@ -381,19 +427,13 @@ class GameState:
         return player_id == self.current_turn
 
     def move_frog(self, websocket_id: str):
+        player_id = self._get_player_id(websocket_id)
+
         next_frog_idx = random.choice(self.unmoved_frogs)
         self.unmoved_frogs.remove(next_frog_idx)
 
         from_tile, _ = self._get_frog_position(next_frog_idx)
         moved_to_tile = self._move_frog(next_frog_idx)
-        # We only need to check once as the following tile is guaranteed to not have a spectator tile
-        moved_to_tile = self._use_spectator_tile(moved_to_tile)
-
-        player_id = self._get_player_id(websocket_id)
-        self.players[player_id].gold += 1
-
-        self._next_turn()
-
         self.updates.append(
             PlayerMoveFrogUpdate(
                 player_id=player_id,
@@ -402,6 +442,13 @@ class GameState:
                 to_tile=moved_to_tile,
             )
         )
+
+        # We only need to check once as the following tile is guaranteed to not have a spectator tile
+        moved_to_tile = self._use_spectator_tile(moved_to_tile)
+
+        self.players[player_id].gold += 1
+
+        self._next_turn()
 
         if moved_to_tile == self.num_tiles - 1:
             self._end_game()
@@ -539,7 +586,9 @@ class GameState:
         assert not player.has_spectator_tile
         assert self.is_valid_spectator_tile_placement(tile_idx)
 
-        self.track[tile_idx].place_spectator_tile(player_id, direction)
+        self.track[tile_idx].place_spectator_tile(
+            player_id, player.connection.name, direction
+        )
         player.place_spectator_tile(tile_idx)
 
         self.updates.append(

@@ -35,6 +35,14 @@ class PlayerSpectatorTileUpdate(Update):
 
 
 @dataclass
+class SpectatorTileWinningsUpdate(Update):
+    frog_idx: int
+    from_tile: int
+    to_tile: int
+    type: Literal["spectator_tile_winnings"] = "spectator_tile_winnings"
+
+
+@dataclass
 class LegBetWinningsUpdate(Update):
     frog_idx: int
     frog_placing: int
@@ -53,4 +61,5 @@ class OverallBetWinningsUpdate(Update):
 @dataclass
 class EndGameUpdate(Update):
     player_rankings: list[str]
+    winning_frog_idx: int
     type: Literal["end_game_update"] = "end_game_update"
