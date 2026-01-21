@@ -89,6 +89,41 @@ class OverallBet:
 
 
 @dataclass
+class PlayerStats:
+    move_frog_winnings: int = 0
+
+    num_leg_bets_won: int = 0
+    leg_bet_winnings: int = 0
+    num_leg_bets_lost: int = 0
+    leg_bet_losses: int = 0
+
+    @property
+    def total_leg_bets_made(self) -> int:
+        return self.num_leg_bets_won + self.num_leg_bets_lost
+
+    num_overall_bets_won: int = 0
+    overall_bet_winnings: int = 0
+    num_overall_bets_lost: int = 0
+    overall_bet_losses: int = 0
+
+    @property
+    def total_overall_bets_made(self) -> int:
+        return self.num_overall_bets_won + self.num_overall_bets_lost
+
+    @property
+    def total_losses(self) -> int:
+        return self.leg_bet_losses + self.overall_bet_losses
+
+    @property
+    def bet_accuracy(self) -> float:
+        return (self.num_leg_bets_won + self.num_overall_bets_won) / (
+            self.total_leg_bets_made + self.total_overall_bets_made
+        )
+
+    spectator_tile_winnings: int = 0
+
+
+@dataclass
 class Player:
     player_id: str
     connection: Connection
@@ -98,6 +133,8 @@ class Player:
     # whether a player has made a overall bet for a frog
     overall_bets: list[Literal["none", "loser", "winner"]] = field(init=False)
     spectator_tile_idx: int = -1
+
+    stats = PlayerStats()
 
     def __post_init__(self):
         self.overall_bets = ["none"] * self.num_frogs
@@ -124,10 +161,39 @@ class Player:
     def clear_spectator_tile(self):
         self.spectator_tile_idx = -1
 
+    def add_move_frog_winnings(self, winnings: int):
+        self.gold += winnings
+        if winnings > 0:
+            self.stats.move_frog_winnings += winnings
+
+    def add_leg_bet_winnings(self, winnings: int):
+        self.gold += winnings
+        if winnings > 0:
+            self.stats.leg_bet_winnings += winnings
+        else:
+            self.stats.leg_bet_losses += winnings
+
+    def add_overall_bet_winnings(self, winnings: int):
+        self.gold += winnings
+        if winnings > 0:
+            self.stats.overall_bet_winnings += winnings
+        else:
+            self.stats.overall_bet_losses += winnings
+
+    def add_spectator_tile_winnings(self, winnings: int):
+        self.gold += winnings
+        if winnings > 0:
+            self.stats.spectator_tile_winnings += winnings
+
 
 @dataclass
 class EndGameStats:
-    winner: Player
+    winner: tuple[Player, int]
+    placings: list[Player]
+    most_leg_bets: tuple[Player, int]
+    most_losses: tuple[Player, int]
+    highest_bet_accuracy: tuple[Player, float]
+    most_spectator_tile_winnings: tuple[Player, int]
 
 
 @dataclass
@@ -275,7 +341,8 @@ class GameState:
         for player in self.players.values():
             for leg_bet in player.leg_bets:
                 frog_pos = self.frog_order.index(leg_bet.frog_idx)
-                player.gold += leg_bet.winnings[frog_pos]
+                player.add_leg_bet_winnings(leg_bet.winnings[frog_pos])
+
                 self.updates.append(
                     LegBetWinningsUpdate(
                         player_id=player.player_id,
@@ -293,7 +360,8 @@ class GameState:
         for bet in bets:
             player = self.players[bet.player_id]
             if bet.frog_idx != target_frog:
-                player.gold -= self.overall_bet_loss
+                player.add_overall_bet_winnings(-1 * self.overall_bet_loss)
+
                 self.updates.append(
                     OverallBetWinningsUpdate(
                         player_id=bet.player_id,
@@ -303,12 +371,13 @@ class GameState:
                     )
                 )
                 continue
+
             # if there are more than 5 players, they all get the last winning amt
             winnings = self.overall_bet_winnings[
                 min(len(self.overall_bet_winnings) - 1, i)
             ]
-            player.gold += winnings
-            i += 1
+            player.add_overall_bet_winnings(winnings)
+
             self.updates.append(
                 OverallBetWinningsUpdate(
                     player_id=bet.player_id,
@@ -317,6 +386,8 @@ class GameState:
                     winnings=winnings,
                 )
             )
+
+            i += 1
 
     def _make_leg_bet_payouts(self, idx: int) -> list[int]:
         if idx == 0:
@@ -348,17 +419,35 @@ class GameState:
         self._reset_spectator_tiles()
         self._update_spectator_tile_availability()
 
-    def _calculate_winner(self, winning_frog_idx: int):
-        sorted_players = list(self.players.values())
-        sorted_players.sort(key=lambda p: p.gold, reverse=True)
-        self.updates.append(
-            EndGameUpdate(
-                player_id="",
-                player_rankings=[player.player_id for player in sorted_players],
-                winning_frog_idx=winning_frog_idx,
-            )
+    def _calculate_stats(self, sorted_players: list[Player]):
+        most_leg_bets_player = max(
+            sorted_players, key=lambda p: p.stats.total_leg_bets_made
         )
-        self.end_game_stats = EndGameStats(winner=sorted_players[0])
+        most_losses_player = min(sorted_players, key=lambda p: p.stats.total_losses)
+        highest_bet_accuracy_player = max(
+            sorted_players, key=lambda p: p.stats.bet_accuracy
+        )
+        most_spectator_tile_winnings_player = max(
+            sorted_players, key=lambda p: p.stats.spectator_tile_winnings
+        )
+
+        self.end_game_stats = EndGameStats(
+            winner=(sorted_players[0], sorted_players[0].gold),
+            placings=sorted_players,
+            most_leg_bets=(
+                most_leg_bets_player,
+                most_leg_bets_player.stats.total_leg_bets_made,
+            ),
+            most_losses=(most_losses_player, most_losses_player.stats.total_losses),
+            highest_bet_accuracy=(
+                highest_bet_accuracy_player,
+                highest_bet_accuracy_player.stats.bet_accuracy,
+            ),
+            most_spectator_tile_winnings=(
+                most_spectator_tile_winnings_player,
+                most_spectator_tile_winnings_player.stats.spectator_tile_winnings,
+            ),
+        )
 
     def _end_game(self):
         self._calculate_leg_bets()
@@ -366,7 +455,19 @@ class GameState:
         self._calculate_overall_bets(winning_frog, "winner")
         self._calculate_overall_bets(losing_frog, "loser")
 
-        self._calculate_winner(winning_frog)
+        sorted_players = list(self.players.values())
+        sorted_players.sort(key=lambda p: p.gold, reverse=True)
+
+        self.updates.append(
+            EndGameUpdate(
+                player_id="",
+                player_rankings=[player.player_id for player in sorted_players],
+                winning_frog_idx=winning_frog,
+            )
+        )
+
+        self._calculate_stats(sorted_players)
+
         self.current_turn = ""
         self.state = "ended"
 
@@ -401,7 +502,7 @@ class GameState:
         bottom_frog = tile.frogs[0]
         moved_to_tile = self._move_frog(bottom_frog, tile.spectator_tile.direction)
         player_id = tile.spectator_tile.player_id
-        self.players[player_id].gold += 1
+        self.players[player_id].add_spectator_tile_winnings(1)
 
         self.updates.append(
             SpectatorTileWinningsUpdate(
@@ -446,7 +547,7 @@ class GameState:
         # We only need to check once as the following tile is guaranteed to not have a spectator tile
         moved_to_tile = self._use_spectator_tile(moved_to_tile)
 
-        self.players[player_id].gold += 1
+        self.players[player_id].add_move_frog_winnings(1)
 
         self._next_turn()
 
