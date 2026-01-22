@@ -1,10 +1,19 @@
 import "./App.css";
 import { useState } from "react";
 
-import { Box, Grid, Button, TextField, Tabs, Tab } from "@mui/material";
+import {
+    Box,
+    Grid,
+    Button,
+    TextField,
+    Tabs,
+    Tab,
+    Typography,
+} from "@mui/material";
 import { hostGame, joinGame } from "../api/game";
 import { useNavigate } from "react-router";
 import CustomTabPanel from "../components/CustomTabPanel";
+import FrogSprite from "./game/components/FrogSprite";
 
 function App() {
     const [value, setValue] = useState(0);
@@ -41,12 +50,27 @@ function App() {
                 width="300px"
                 flexDirection="column"
                 height="100%"
-                justifyContent="center">
+                justifyContent="center"
+                alignItems="center">
+                <Typography variant="h4" style={{ margin: "10px" }}>
+                    leapfrog
+                </Typography>
+                <FrogSprite
+                    frog={{
+                        idx: 0,
+                        name: "",
+                        color: "#4CAF50",
+                        is_forward_frog: true,
+                        start_pos: 0,
+                        moves: [],
+                    }}
+                />
                 <Box
                     sx={{
                         borderBottom: 1,
                         borderColor: "divider",
                         width: "100%",
+                        marginTop: "10px",
                     }}>
                     <Tabs
                         value={value}
@@ -57,7 +81,10 @@ function App() {
                         <Tab label="Host" />
                     </Tabs>
                 </Box>
-                <CustomTabPanel value={value} index={0}>
+                <CustomTabPanel
+                    value={value}
+                    index={0}
+                    style={{ width: "100%" }}>
                     <Grid
                         container
                         direction="column"
@@ -65,7 +92,8 @@ function App() {
                         alignItems="center"
                         justifyContent="center"
                         component="form"
-                        onSubmit={handleJoinGame}>
+                        onSubmit={handleJoinGame}
+                        width="100%">
                         <TextField
                             label="Game PIN"
                             variant="outlined"
@@ -83,7 +111,10 @@ function App() {
                         </Button>
                     </Grid>
                 </CustomTabPanel>
-                <CustomTabPanel value={value} index={1}>
+                <CustomTabPanel
+                    value={value}
+                    index={1}
+                    style={{ width: "100%" }}>
                     <Grid
                         container
                         direction="column"

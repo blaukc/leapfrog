@@ -5,6 +5,7 @@ interface TabPanelProps {
     index: number;
     value: number;
     padding?: number;
+    style?: React.CSSProperties;
 }
 
 function CustomTabPanel(props: TabPanelProps) {
