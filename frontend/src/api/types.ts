@@ -160,6 +160,29 @@ export const OverallBetSchema = z.object({
 });
 export type OverallBet = z.infer<typeof OverallBetSchema>;
 
+/* Player statistics schema matching backend PlayerStats dataclass */
+export const PlayerStatsSchema = z.object({
+    move_frog_winnings: z.number().int().default(0),
+
+    num_leg_bets_won: z.number().int().default(0),
+    leg_bet_winnings: z.number().int().default(0),
+    num_leg_bets_lost: z.number().int().default(0),
+    leg_bet_losses: z.number().int().default(0),
+
+    num_overall_bets_won: z.number().int().default(0),
+    overall_bet_winnings: z.number().int().default(0),
+    num_overall_bets_lost: z.number().int().default(0),
+    overall_bet_losses: z.number().int().default(0),
+
+    spectator_tile_winnings: z.number().int().default(0),
+    // Computed properties present on backend (may be omitted in serialized payloads)
+    total_leg_bets_made: z.number().int().optional(),
+    total_overall_bets_made: z.number().int().optional(),
+    total_losses: z.number().int().optional(),
+    bet_accuracy: z.number().optional(),
+});
+export type PlayerStats = z.infer<typeof PlayerStatsSchema>;
+
 /* Player schema */
 export const PlayerSchema = z.object({
     player_id: z.string().describe("The unique ID of the player."),
@@ -179,12 +202,33 @@ export const PlayerSchema = z.object({
         .number()
         .int()
         .describe("Index of a spectator tile placed by player, -1 if none."),
+    stats: PlayerStatsSchema,
 });
 export type Player = z.infer<typeof PlayerSchema>;
 
+/* End game stats schema matching backend EndGameStats dataclass */
 export const EndGameStatsSchema = z
     .object({
-        winner: PlayerSchema.describe("Winning player"),
+        winner: z
+            .tuple([PlayerSchema, z.number().int()])
+            .describe("Tuple of winning player and their score/placing"),
+        placings: z
+            .array(PlayerSchema)
+            .describe("Players in final placing order"),
+        most_leg_bets: z
+            .tuple([PlayerSchema, z.number().int()])
+            .describe("Player with most leg bets and count"),
+        most_losses: z
+            .tuple([PlayerSchema, z.number().int()])
+            .describe("Player with most losses and count"),
+        highest_bet_accuracy: z
+            .tuple([PlayerSchema, z.number()])
+            .describe(
+                "Player with highest bet accuracy and the accuracy value",
+            ),
+        most_spectator_tile_winnings: z
+            .tuple([PlayerSchema, z.number().int()])
+            .describe("Player with most spectator tile winnings and amount"),
     })
     .nullable()
     .optional()

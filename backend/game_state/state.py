@@ -116,6 +116,8 @@ class PlayerStats:
 
     @property
     def bet_accuracy(self) -> float:
+        if self.total_leg_bets_made + self.total_overall_bets_made == 0:
+            return 0.0
         return (self.num_leg_bets_won + self.num_overall_bets_won) / (
             self.total_leg_bets_made + self.total_overall_bets_made
         )
@@ -134,7 +136,7 @@ class Player:
     overall_bets: list[Literal["none", "loser", "winner"]] = field(init=False)
     spectator_tile_idx: int = -1
 
-    stats = PlayerStats()
+    stats: PlayerStats = PlayerStats()
 
     def __post_init__(self):
         self.overall_bets = ["none"] * self.num_frogs
@@ -170,15 +172,19 @@ class Player:
         self.gold += winnings
         if winnings > 0:
             self.stats.leg_bet_winnings += winnings
+            self.stats.num_leg_bets_won += 1
         else:
             self.stats.leg_bet_losses += winnings
+            self.stats.num_leg_bets_lost += 1
 
     def add_overall_bet_winnings(self, winnings: int):
         self.gold += winnings
         if winnings > 0:
             self.stats.overall_bet_winnings += winnings
+            self.stats.num_overall_bets_won += 1
         else:
             self.stats.overall_bet_losses += winnings
+            self.stats.num_overall_bets_lost += 1
 
     def add_spectator_tile_winnings(self, winnings: int):
         self.gold += winnings
