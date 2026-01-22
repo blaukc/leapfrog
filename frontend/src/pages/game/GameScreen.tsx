@@ -1,13 +1,14 @@
 import { Grid } from "@mui/material";
 import type { GameState } from "../../api/types";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import GameTile from "./components/GameTile";
 import GameActions from "./components/GameActions";
 import FrogInfo from "./components/FrogInfo";
 import { getPlayerId } from "../../common/utils";
 import EndGameStatsView from "./components/EndGameStatsView";
 import GameHUD from "./components/GameHUD";
+import { toast } from "../../api/utils";
 
 interface GameScreenProps {
     sendJsonMessage: SendJsonMessage;
@@ -25,6 +26,20 @@ const GameScreen = ({
     const playerId = useMemo(() => getPlayerId(websocketId), [websocketId]);
     const player = gameState.players[playerId];
     const isCurrentTurn = playerId === gameState.current_turn;
+
+    const lastToastedTurnId = useRef<number | null>(null);
+
+    useEffect(() => {
+        if (
+            gameState.notify_turn &&
+            isCurrentTurn &&
+            lastToastedTurnId.current !== gameState.turn_number
+        ) {
+            toast("Your turn.", "info");
+        }
+
+        lastToastedTurnId.current = gameState.turn_number;
+    }, [gameState.notify_turn, gameState.turn_number, isCurrentTurn]);
 
     return (
         <Grid

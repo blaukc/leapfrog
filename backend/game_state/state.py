@@ -207,12 +207,14 @@ class GameState:
     game_code: str
     state: Literal["lobby", "game", "ended"] = "lobby"
     current_round: int = 0
+    turn_number: int = 0
     updates: list[Update] = field(default_factory=list)
 
     connections: list[Connection] = field(default_factory=list)
     players: dict[str, Player] = field(default_factory=dict)
     player_order: list[str] = field(default_factory=list)
     current_turn: str = ""
+    notify_turn: bool = False
 
     num_tiles: int = 16 + 1  # including finish tile
     track: list[Tile] = field(default_factory=list)
@@ -294,6 +296,8 @@ class GameState:
         self.leg_bets.clear()
         self.overall_win_bets.clear()
         self.overall_lose_bets.clear()
+        self.current_round = 0
+        self.turn_number = 0
 
     @staticmethod
     def _get_player_id(websocket_id: str):
@@ -342,6 +346,8 @@ class GameState:
         num_players = len(self.players)
         next_idx = (self.player_order.index(self.current_turn) + 1) % num_players
         self.current_turn = self.player_order[next_idx]
+        self.notify_turn = True
+        self.turn_number += 1
 
     def _calculate_leg_bets(self):
         for player in self.players.values():
@@ -711,6 +717,7 @@ class GameState:
     def start_game(self):
         self._initialize_frog_position()
         self._next_round()
+        self.notify_turn = True
 
     def to_lobby(self):
         self.state = "lobby"

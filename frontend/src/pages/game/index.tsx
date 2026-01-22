@@ -24,7 +24,7 @@ function Game() {
             onClose: () => {
                 toast("Disconnected", "error");
             },
-        }
+        },
     );
 
     if (clientId === null) {

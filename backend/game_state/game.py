@@ -45,6 +45,7 @@ class Game:
         self._state_update_queue = state_update_queue
 
     async def process_event(self, event: BaseEvent):
+        self._game_state.notify_turn = False
         match event:
             case PlayerJoinEvent():
                 self._game_state.add_connection(

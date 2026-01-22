@@ -242,6 +242,7 @@ export const GameStateSchema = z.object({
         .enum(["lobby", "game", "ended"])
         .describe("The current state of the game."),
     current_round: z.number().int().describe("Current round number (int)"),
+    turn_number: z.number().int().describe("Current turn number (int)"),
     updates: z
         .array(UpdateSchema)
         .describe("List of updates/events from server."),
@@ -257,6 +258,9 @@ export const GameStateSchema = z.object({
     current_turn: z
         .string()
         .describe("player_id for current turn (empty string when no one)."),
+    notify_turn: z
+        .boolean()
+        .describe("Whether player should be notified of turn"),
     num_tiles: z
         .number()
         .int()
