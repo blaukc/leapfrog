@@ -136,7 +136,7 @@ class Player:
     overall_bets: list[Literal["none", "loser", "winner"]] = field(init=False)
     spectator_tile_idx: int = -1
 
-    stats: PlayerStats = PlayerStats()
+    stats: PlayerStats = field(default_factory=PlayerStats)
 
     def __post_init__(self):
         self.overall_bets = ["none"] * self.num_frogs
