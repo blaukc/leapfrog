@@ -147,6 +147,21 @@ class GameManager:
             self._websockets[game_code][websocket_id] = websocket
             return True
 
+    async def remove_websocket(self, game_code: str, websocket_id: str):
+        async with self.lock:
+            if game_code not in self._websockets:
+                return False
+            if websocket_id not in self._websockets[game_code]:
+                return False
+            del self._websockets[game_code][websocket_id]
+            return True
+
+    async def is_websocket_exist(self, game_code: str, websocket_id: str):
+        async with self.lock:
+            if game_code not in self._websockets:
+                return False
+            return websocket_id in self._websockets[game_code]
+
     async def add_event(self, event: BaseEvent) -> bool:
         async with self.lock:
             game = self._games.get(event.game_code)

@@ -2,6 +2,7 @@ import z from "zod";
 
 export interface JoinGameResponse {
     success: boolean;
+    is_existing_player: boolean;
     message: string;
 }
 

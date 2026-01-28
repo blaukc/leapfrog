@@ -3,6 +3,7 @@ import { Box, Button, Grid, Tab, Tabs, TextField } from "@mui/material";
 import CustomTabPanel from "../components/CustomTabPanel";
 import { useNavigate, useParams } from "react-router";
 import { createPlayer, createSpectator } from "../api/game";
+import { CLIENT_ID_LOCAL_STORAGE_KEY } from "../common/constants";
 
 function ChooseView() {
     const [value, setValue] = useState(0);
@@ -16,19 +17,19 @@ function ChooseView() {
     };
 
     const handlePlayerNameChange = (
-        event: React.ChangeEvent<HTMLInputElement>
+        event: React.ChangeEvent<HTMLInputElement>,
     ) => {
         setPlayerName(event.target.value);
     };
 
     const handleCreatePlayer = async (
-        event: React.FormEvent<HTMLFormElement>
+        event: React.FormEvent<HTMLFormElement>,
     ) => {
         event.preventDefault();
         if (playerName.length === 0) return;
         const res = await createPlayer(gameCode, playerName);
         if (res.success && res.websocket_id) {
-            localStorage.setItem("client_id", res.websocket_id);
+            localStorage.setItem(CLIENT_ID_LOCAL_STORAGE_KEY, res.websocket_id);
             navigate(`/leapfrog/${gameCode}`);
         } else {
             navigate(`/leapfrog`);
@@ -38,7 +39,7 @@ function ChooseView() {
     const handleCreateSpectator = async () => {
         const res = await createSpectator(gameCode);
         if (res.success && res.websocket_id) {
-            localStorage.setItem("client_id", res.websocket_id);
+            localStorage.setItem(CLIENT_ID_LOCAL_STORAGE_KEY, res.websocket_id);
             navigate(`/leapfrog/${gameCode}`);
         } else {
             navigate(`/leapfrog`);

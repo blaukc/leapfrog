@@ -14,6 +14,7 @@ import { hostGame, joinGame } from "../api/game";
 import { useNavigate } from "react-router";
 import CustomTabPanel from "../components/CustomTabPanel";
 import FrogSprite from "./game/components/FrogSprite";
+import { CLIENT_ID_LOCAL_STORAGE_KEY } from "../common/constants";
 
 function App() {
     const [value, setValue] = useState(0);
@@ -30,10 +31,15 @@ function App() {
 
     const handleJoinGame = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        const clientId = localStorage.getItem(CLIENT_ID_LOCAL_STORAGE_KEY);
         if (pin.length === 0) return;
-        const res = await joinGame(pin);
+        const res = await joinGame(pin, clientId);
         if (res.success) {
-            navigate(`/leapfrog/${pin}/choose-view`);
+            if (res.is_existing_player) {
+                navigate(`/leapfrog/${pin}`);
+            } else {
+                navigate(`/leapfrog/${pin}/choose-view`);
+            }
         }
     };
 

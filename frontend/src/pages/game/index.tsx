@@ -5,12 +5,13 @@ import useWebSocket, { ReadyState } from "react-use-websocket";
 import { WebsocketResponseSchema } from "../../api/types";
 import LobbyScreen from "./LobbyScreen";
 import GameScreen from "./GameScreen";
+import { CLIENT_ID_LOCAL_STORAGE_KEY } from "../../common/constants";
 
 function Game() {
     const navigate = useNavigate();
     const params = useParams();
     const gameCode = params.gameCode;
-    const clientId = localStorage.getItem("client_id");
+    const clientId = localStorage.getItem(CLIENT_ID_LOCAL_STORAGE_KEY);
 
     const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket(
         getWsUrl(gameCode!),

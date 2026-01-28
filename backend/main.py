@@ -9,7 +9,7 @@ import uuid
 
 import starlette
 
-from api.requests import CreatePlayerRequest
+from api.requests import CreatePlayerRequest, JoinGameRequest
 from game_state.events import Event, EventAdapter, PlayerJoinEvent, SpectatorJoinEvent
 from game_state.game import GameManager
 
@@ -84,17 +84,35 @@ def get_state_manager() -> GameManager | None:
     raise RuntimeError("State managers not initialized")
 
 
-@prefix_router.get("/game/{game_code}/join", status_code=status.HTTP_200_OK)
+@prefix_router.post("/game/{game_code}/join", status_code=status.HTTP_200_OK)
 async def join_game(
     game_code: str,
+    payload: JoinGameRequest,
     response: Response,
     state_manager: GameManager = Depends(get_state_manager),
 ):
-    if await state_manager.get_game_state(game_code) is not None:
-        return {"success": True, "message": f"Joined game {game_code} successfully"}
+    if await state_manager.get_game_state(game_code) is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {
+            "success": False,
+            "is_existing_player": False,
+            "message": f"Game code {game_code} does not exist",
+        }
 
-    response.status_code = status.HTTP_404_NOT_FOUND
-    return {"success": False, "message": f"Game code {game_code} does not exist"}
+    if payload.clientId is not None and await state_manager.is_websocket_exist(
+        game_code, payload.clientId
+    ):
+        return {
+            "success": True,
+            "is_existing_player": True,
+            "message": f"Rejoined game {game_code} successfully",
+        }
+
+    return {
+        "success": True,
+        "is_existing_player": False,
+        "message": f"Joined game {game_code} successfully",
+    }
 
 
 @prefix_router.post("/host", status_code=status.HTTP_201_CREATED)
@@ -172,7 +190,6 @@ async def send_game_state(
 ):
     game_state = await state_manager.get_game_state(game_code)
     if game_state is None:
-        print("no game")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
         return
     print("ws", game_state)
