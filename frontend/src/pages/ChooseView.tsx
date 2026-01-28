@@ -4,6 +4,12 @@ import CustomTabPanel from "../components/CustomTabPanel";
 import { useNavigate, useParams } from "react-router";
 import { createPlayer, createSpectator } from "../api/game";
 import { CLIENT_ID_LOCAL_STORAGE_KEY } from "../common/constants";
+import { toast } from "../api/utils";
+
+const validateName = (name: string): boolean => {
+    const nameRegex = /^[a-zA-Z0-9 !@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]{1,15}$/;
+    return nameRegex.test(name);
+};
 
 function ChooseView() {
     const [value, setValue] = useState(0);
@@ -27,6 +33,13 @@ function ChooseView() {
     ) => {
         event.preventDefault();
         if (playerName.length === 0) return;
+        if (!validateName(playerName)) {
+            toast(
+                "Invalid name. Use 1-15 standard English keyboard characters.",
+                "error",
+            );
+            return;
+        }
         const res = await createPlayer(gameCode, playerName);
         if (res.success && res.websocket_id) {
             localStorage.setItem(CLIENT_ID_LOCAL_STORAGE_KEY, res.websocket_id);

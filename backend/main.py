@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 import random
+import re
 from fastapi import APIRouter, Depends, FastAPI, Response, WebSocket, status
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
@@ -145,6 +146,15 @@ async def create_player(
     response: Response,
     state_manager: GameManager = Depends(get_state_manager),
 ):
+    if not re.match(
+        r"^[ \w!@#$%^&*()\-=[\]{};':\"\\|,.<>/?]{1,15}$", payload.name, re.ASCII
+    ):
+        return {
+            "success": False,
+            "websocket_id": "",
+            "message": f"Invalid name. Use 1-15 standard keyboard characters.",
+        }
+
     if await state_manager.get_game_state(game_code) is not None:
         websocket_id = str(uuid.uuid4())[:8]
         await state_manager.add_event(
