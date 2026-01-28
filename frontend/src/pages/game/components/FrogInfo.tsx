@@ -102,7 +102,10 @@ const FrogInfo = ({
                         justifyContent="center"
                         gap="5px">
                         <Typography>Overall Bet</Typography>
-                        <Tooltip title={OVERALL_BET_SUMMARY}>
+                        <Tooltip
+                            disableFocusListener
+                            title={OVERALL_BET_SUMMARY}
+                            enterTouchDelay={0}>
                             <IconButton size="small" style={{ padding: 0 }}>
                                 <InfoOutlineIcon fontSize="small" />
                             </IconButton>
@@ -168,7 +171,10 @@ const FrogInfo = ({
                                             {legBets[0].winnings[2]}
                                         </Typography>
                                     </Grid>
-                                    <Tooltip title={LEG_BET_SUMMARY}>
+                                    <Tooltip
+                                        disableFocusListener
+                                        title={LEG_BET_SUMMARY}
+                                        enterTouchDelay={0}>
                                         <IconButton
                                             size="small"
                                             style={{ padding: 0 }}>

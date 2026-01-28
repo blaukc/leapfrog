@@ -41,7 +41,10 @@ const GameActions = ({
                         alignItems="center"
                         gap="5px">
                         MOVE FROG
-                        <Tooltip title={MOVE_FROG_SUMMARY}>
+                        <Tooltip
+                            disableFocusListener
+                            title={MOVE_FROG_SUMMARY}
+                            enterTouchDelay={0}>
                             <IconButton size="small" style={{ padding: 0 }}>
                                 <InfoOutlineIcon fontSize="small" />
                             </IconButton>

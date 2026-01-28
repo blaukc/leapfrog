@@ -80,6 +80,8 @@ const SpectatorTile = ({ spectatorTile }: SpectatorTileProps) => {
     return (
         <Tooltip
             title={`This spectator tile is owned by ${spectatorTile.player_name}`}
+            disableFocusListener
+            enterTouchDelay={0}
             placement="top">
             <Box
                 width="90%"
