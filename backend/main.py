@@ -151,25 +151,28 @@ async def create_player(
     ):
         return {
             "success": False,
-            "websocket_id": "",
             "message": f"Invalid name. Use 1-15 standard keyboard characters.",
         }
 
-    if await state_manager.get_game_state(game_code) is not None:
-        websocket_id = str(uuid.uuid4())[:8]
-        await state_manager.add_event(
-            PlayerJoinEvent(
-                game_code=game_code, websocket_id=websocket_id, player_name=payload.name
-            )
-        )
-        return {
-            "success": True,
-            "websocket_id": websocket_id,
-            "message": f"Player {payload.name} has joined game sucessfully.",
-        }
+    game_state = await state_manager.get_game_state(game_code)
+    if game_state is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"success": False, "message": f"Game code {game_code} does not exist"}
 
-    response.status_code = status.HTTP_404_NOT_FOUND
-    return {"success": False, "message": f"Game code {game_code} does not exist"}
+    if game_state.state != "lobby":
+        return {"success": False, "message": "Game is currently ongoing."}
+
+    websocket_id = str(uuid.uuid4())[:8]
+    await state_manager.add_event(
+        PlayerJoinEvent(
+            game_code=game_code, websocket_id=websocket_id, player_name=payload.name
+        )
+    )
+    return {
+        "success": True,
+        "websocket_id": websocket_id,
+        "message": f"Player {payload.name} has joined game sucessfully.",
+    }
 
 
 @prefix_router.post(
