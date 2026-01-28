@@ -1,5 +1,5 @@
 import { Grid } from "@mui/material";
-import type { GameState } from "../../api/types";
+import type { ConnectionType, GameState } from "../../api/types";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { useEffect, useMemo, useRef } from "react";
 import GameTile from "./components/GameTile";
@@ -23,8 +23,11 @@ const GameScreen = ({
     gameCode,
     gameState,
 }: GameScreenProps) => {
+    const connectionType: ConnectionType =
+        gameState.connections.find((conn) => conn.websocket_id === websocketId)
+            ?.connection_type || "spectator";
     const playerId = useMemo(() => getPlayerId(websocketId), [websocketId]);
-    const player = gameState.players[playerId];
+    const player = gameState.players[playerId] || null;
     const isCurrentTurn = playerId === gameState.current_turn;
 
     const lastToastedTurnId = useRef<number | null>(null);
@@ -58,15 +61,19 @@ const GameScreen = ({
             <Grid container wrap="nowrap" spacing={1} overflow="auto">
                 {gameState.track.map((tile, idx) => (
                     <GameTile
+                        key={idx}
                         gameCode={gameCode}
                         websocketId={websocketId}
+                        connectionType={connectionType}
                         sendJsonMessage={sendJsonMessage}
                         idx={idx === gameState.num_tiles - 1 ? "FINISH" : idx}
                         tile={tile}
                         frogs={gameState.frogs}
                         unmovedFrogs={gameState.unmoved_frogs}
                         hasPlayerPlacedSpectatorTile={
-                            player.spectator_tile_idx != -1
+                            connectionType === "player"
+                                ? player.spectator_tile_idx != -1
+                                : false
                         }
                         isCurrentTurn={isCurrentTurn}
                         gameState={gameState.state}
@@ -82,7 +89,9 @@ const GameScreen = ({
                     spacing={2}>
                     {gameState.frogs.map((frog) => (
                         <FrogInfo
+                            key={frog.idx}
                             player={player}
+                            connectionType={connectionType}
                             isCurrentTurn={isCurrentTurn}
                             frog={frog}
                             hasMoved={
@@ -100,7 +109,7 @@ const GameScreen = ({
                     ))}
                 </Grid>
             )}
-            {gameState.state === "game" && (
+            {gameState.state === "game" && connectionType === "player" && (
                 <GameActions
                     sendJsonMessage={sendJsonMessage}
                     gameCode={gameCode}
@@ -111,6 +120,7 @@ const GameScreen = ({
             )}
             {gameState.state === "ended" && (
                 <EndGameStatsView
+                    connectionType={connectionType}
                     sendJsonMessage={sendJsonMessage}
                     gameCode={gameCode}
                     websocketId={websocketId}

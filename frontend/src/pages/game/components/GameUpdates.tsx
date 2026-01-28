@@ -138,7 +138,9 @@ const GameUpdates = ({
             overflow="auto"
             wrap="nowrap"
             {...otherProps}>
-            {[...updates].reverse().map((update) => formatUpdate(update))}
+            {[...updates].reverse().map((update, idx) => (
+                <div key={idx}>{formatUpdate(update)}</div>
+            ))}
         </Grid>
     );
 };

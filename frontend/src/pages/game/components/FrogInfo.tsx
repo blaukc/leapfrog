@@ -8,16 +8,59 @@ import {
     Tooltip,
     Typography,
     useTheme,
+    type Theme,
 } from "@mui/material";
 import InfoOutlineIcon from "@mui/icons-material/InfoOutline";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { makeLegBetEvent, makeOverallBetEvent } from "../../../api/events";
-import type { Frog, LegBet, Player } from "../../../api/types";
+import type { ConnectionType, Frog, LegBet, Player } from "../../../api/types";
 import FrogSprite from "./FrogSprite";
 import PlacingIcon from "./PlacingIcon";
 
+const OVERALL_BET_SUMMARY = `Predict the race winner or loser to earn 8, 5, 3, 2, or 1 Gold based on how early you placed your bet. 
+Correct guesses pay out according to your position in the deck, while any incorrect guess results in a 1 Gold penalty.`;
+const LEG_BET_SUMMARY = `Bet on a frog to lead the leg: finishing 1st or 2nd pays out, but any lower rank incurs a -1 penalty. 
+Payouts diminish (e.g., from 5 to 2 for 1st place) as more bets are taken, rewarding those who commit earlier.`;
+
+interface LegBetWinningsProps {
+    legBets: LegBet[];
+    showInfo?: boolean;
+}
+
+const LegBetWinnings = ({ legBets, showInfo = false }: LegBetWinningsProps) => {
+    return (
+        <>
+            <Grid container justifyContent="space-evenly" width="100%">
+                <Grid alignItems="center">
+                    <PlacingIcon placing="first" />
+                    <Typography>{legBets[0].winnings[0]}</Typography>
+                </Grid>
+                <Grid alignItems="center">
+                    <PlacingIcon placing="second" />
+                    <Typography>{legBets[0].winnings[1]}</Typography>
+                </Grid>
+                <Grid alignItems="center">
+                    <PlacingIcon placing="third" />
+                    <Typography>{legBets[0].winnings[2]}</Typography>
+                </Grid>
+                {showInfo && (
+                    <Tooltip
+                        disableFocusListener
+                        title={LEG_BET_SUMMARY}
+                        enterTouchDelay={0}>
+                        <IconButton size="small" style={{ padding: 0 }}>
+                            <InfoOutlineIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                )}
+            </Grid>
+        </>
+    );
+};
+
 interface FrogInfoProps {
     player: Player;
+    connectionType: ConnectionType;
     frog: Frog;
     hasMoved: boolean;
     sendJsonMessage: SendJsonMessage;
@@ -27,13 +70,28 @@ interface FrogInfoProps {
     isCurrentTurn: boolean;
 }
 
-const OVERALL_BET_SUMMARY = `Predict the race winner or loser to earn 8, 5, 3, 2, or 1 Gold based on how early you placed your bet. 
-Correct guesses pay out according to your position in the deck, while any incorrect guess results in a 1 Gold penalty.`;
-const LEG_BET_SUMMARY = `Bet on a frog to lead the leg: finishing 1st or 2nd pays out, but any lower rank incurs a -1 penalty. 
-Payouts diminish (e.g., from 5 to 2 for 1st place) as more bets are taken, rewarding those who commit earlier.`;
+const getFrogInfoBorderColor = (
+    connectionType: ConnectionType,
+    player: Player,
+    frog: Frog,
+    theme: Theme,
+): string => {
+    if (connectionType === "spectator") {
+        return theme.palette.grey.toString();
+    }
+    const overallBet = player.overall_bets[frog.idx];
+    const borderColor =
+        overallBet === "winner"
+            ? theme.palette.success.main
+            : overallBet === "loser"
+              ? theme.palette.error.main
+              : theme.palette.grey;
+    return borderColor.toString();
+};
 
 const FrogInfo = ({
     player,
+    connectionType,
     frog,
     hasMoved,
     sendJsonMessage,
@@ -54,14 +112,6 @@ const FrogInfo = ({
         );
     };
 
-    const overallBet = player.overall_bets[frog.idx];
-    const borderColor =
-        overallBet === "winner"
-            ? theme.palette.success.main
-            : overallBet === "loser"
-              ? theme.palette.error.main
-              : theme.palette.grey;
-
     return (
         <Grid
             container
@@ -74,7 +124,12 @@ const FrogInfo = ({
             justifyContent="flex-start"
             alignItems="center"
             spacing={0.5}
-            borderColor={borderColor.toString()}
+            borderColor={getFrogInfoBorderColor(
+                connectionType,
+                player,
+                frog,
+                theme,
+            )}
             bgcolor={hasMoved ? "rgba(211, 211, 211, 0.2)" : ""}>
             <Grid container flexDirection="column" alignItems="center">
                 <Typography
@@ -92,100 +147,76 @@ const FrogInfo = ({
                     isSleeping={hasMoved}
                 />
             </Grid>
-            {frog.is_forward_frog && (
+            {connectionType === "spectator" && frog.is_forward_frog ? (
                 <>
                     <Divider sx={{ width: "100%" }} />
-                    <Grid
-                        container
-                        alignItems="center"
-                        width="100%"
-                        justifyContent="center"
-                        gap="5px">
-                        <Typography>Overall Bet</Typography>
-                        <Tooltip
-                            disableFocusListener
-                            title={OVERALL_BET_SUMMARY}
-                            enterTouchDelay={0}>
-                            <IconButton size="small" style={{ padding: 0 }}>
-                                <InfoOutlineIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    </Grid>
-                    <ButtonGroup
-                        variant="outlined"
-                        size="small"
-                        disabled={
-                            player.overall_bets[frog.idx] !== "none" ||
-                            !isCurrentTurn
-                        }>
-                        <Button
-                            onClick={() => handleOverallBet("winner")}
-                            color="success">
-                            Winner
-                        </Button>
-                        <Button
-                            onClick={() => handleOverallBet("loser")}
-                            color="error">
-                            Loser
-                        </Button>
-                    </ButtonGroup>
-                    <Divider sx={{ width: "100%" }} />
-                    <Grid
-                        container
-                        flexDirection="column"
-                        alignItems="center"
-                        spacing={1.5}
-                        width="100%">
-                        <Badge badgeContent={legBets.length} color="primary">
-                            <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={handleLegBet}
-                                disabled={
-                                    legBets.length <= 0 || !isCurrentTurn
-                                }>
-                                Leg Bet
-                            </Button>
-                        </Badge>
-                        {legBets.length > 0 && (
-                            <>
-                                <Grid
-                                    container
-                                    justifyContent="space-evenly"
-                                    width="100%">
-                                    <Grid alignItems="center">
-                                        <PlacingIcon placing="first" />
-                                        <Typography>
-                                            {legBets[0].winnings[0]}
-                                        </Typography>
-                                    </Grid>
-                                    <Grid alignItems="center">
-                                        <PlacingIcon placing="second" />
-                                        <Typography>
-                                            {legBets[0].winnings[1]}
-                                        </Typography>
-                                    </Grid>
-                                    <Grid alignItems="center">
-                                        <PlacingIcon placing="third" />
-                                        <Typography>
-                                            {legBets[0].winnings[2]}
-                                        </Typography>
-                                    </Grid>
-                                    <Tooltip
-                                        disableFocusListener
-                                        title={LEG_BET_SUMMARY}
-                                        enterTouchDelay={0}>
-                                        <IconButton
-                                            size="small"
-                                            style={{ padding: 0 }}>
-                                            <InfoOutlineIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                </Grid>
-                            </>
-                        )}
-                    </Grid>
+                    <Typography>Leg Bets</Typography>
+                    {legBets.length > 0 && <LegBetWinnings legBets={legBets} />}
                 </>
+            ) : (
+                frog.is_forward_frog && (
+                    <>
+                        <Divider sx={{ width: "100%" }} />
+                        <Grid
+                            container
+                            alignItems="center"
+                            width="100%"
+                            justifyContent="center"
+                            gap="5px">
+                            <Typography>Overall Bet</Typography>
+                            <Tooltip
+                                disableFocusListener
+                                title={OVERALL_BET_SUMMARY}
+                                enterTouchDelay={0}>
+                                <IconButton size="small" style={{ padding: 0 }}>
+                                    <InfoOutlineIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        </Grid>
+                        <ButtonGroup
+                            variant="outlined"
+                            size="small"
+                            disabled={
+                                player.overall_bets[frog.idx] !== "none" ||
+                                !isCurrentTurn
+                            }>
+                            <Button
+                                onClick={() => handleOverallBet("winner")}
+                                color="success">
+                                Winner
+                            </Button>
+                            <Button
+                                onClick={() => handleOverallBet("loser")}
+                                color="error">
+                                Loser
+                            </Button>
+                        </ButtonGroup>
+                        <Divider sx={{ width: "100%" }} />
+                        <Grid
+                            container
+                            flexDirection="column"
+                            alignItems="center"
+                            spacing={1.5}
+                            width="100%">
+                            <Badge
+                                badgeContent={legBets.length}
+                                color="primary">
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={handleLegBet}
+                                    disabled={
+                                        legBets.length <= 0 || !isCurrentTurn
+                                    }>
+                                    Leg Bet
+                                </Button>
+                            </Badge>
+                            {legBets.length > 0 && (
+                                <LegBetWinnings legBets={legBets} showInfo />
+                            )}
+                        </Grid>
+                    </>
+                )
             )}
         </Grid>
     );

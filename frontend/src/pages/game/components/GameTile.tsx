@@ -1,5 +1,10 @@
 import { Box, Button, ButtonGroup, Grid, Tooltip } from "@mui/material";
-import type { Frog, Tile, SpectatorTile } from "../../../api/types";
+import type {
+    Frog,
+    Tile,
+    SpectatorTile,
+    ConnectionType,
+} from "../../../api/types";
 import FrogSprite from "./FrogSprite";
 import { makeSpectatorTileEvent } from "../../../api/events";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
@@ -15,6 +20,7 @@ const FrogStack = ({ tile, frogs, unmovedFrogs }: FrogStackProps) => {
         const frog = frogs[frogIdx];
         return (
             <FrogSprite
+                key={pos}
                 frog={frog}
                 zIndex={tile.frogs.length - pos}
                 marginBottom={pos === 0 ? -10 : -40}
@@ -105,6 +111,7 @@ const SpectatorTile = ({ spectatorTile }: SpectatorTileProps) => {
 interface TileProps {
     gameCode: string;
     websocketId: string;
+    connectionType: ConnectionType;
     sendJsonMessage: SendJsonMessage;
     idx: number | "FINISH";
     tile: Tile;
@@ -118,6 +125,7 @@ interface TileProps {
 const GameTile = ({
     gameCode,
     websocketId,
+    connectionType,
     sendJsonMessage,
     idx,
     tile,
@@ -148,7 +156,8 @@ const GameTile = ({
                 wrap="nowrap"
                 borderBottom={1}
                 flexGrow={1}>
-                {!hasPlayerPlacedSpectatorTile &&
+                {connectionType === "player" &&
+                !hasPlayerPlacedSpectatorTile &&
                 gameState === "game" &&
                 tile.can_spectator_tile_be_placed &&
                 typeof idx === "number" ? (

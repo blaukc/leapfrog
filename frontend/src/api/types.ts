@@ -25,6 +25,8 @@ export interface CreateSpectatorResponse {
     message: string;
 }
 
+export type ConnectionType = "player" | "spectator";
+
 export const PlayerMoveFrogUpdateSchema = z.object({
     type: z.literal("player_move_frog"),
     player_id: z.string(),

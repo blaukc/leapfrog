@@ -1,9 +1,10 @@
 import { Button, Grid, Typography } from "@mui/material";
 import type { SendJsonMessage } from "react-use-websocket/dist/lib/types";
 import { makeResetGameEvent } from "../../../api/events";
-import type { Player, EndGameStats } from "../../../api/types";
+import type { Player, EndGameStats, ConnectionType } from "../../../api/types";
 
 interface EndGameStatsProps {
+    connectionType: ConnectionType;
     sendJsonMessage: SendJsonMessage;
     gameCode: string;
     websocketId: string;
@@ -12,6 +13,7 @@ interface EndGameStatsProps {
 }
 
 const EndGameStatsView = ({
+    connectionType,
     sendJsonMessage,
     gameCode,
     websocketId,
@@ -35,26 +37,34 @@ const EndGameStatsView = ({
             <Typography variant="h6">
                 {endGameStats.winner[0].connection.name} has won the game.
             </Typography>
-            <Typography variant="subtitle1">Player Stats</Typography>
-            <Typography variant="subtitle2">
-                Gold earned from moving frogs: {player.stats.move_frog_winnings}
-            </Typography>
-            <Typography variant="subtitle2">
-                Gold won from leg bets: {player.stats.leg_bet_winnings}
-            </Typography>
-            <Typography variant="subtitle2">
-                Gold lost from leg bets: {player.stats.leg_bet_losses}
-            </Typography>
-            <Typography variant="subtitle2">
-                Gold won from overall bets: {player.stats.overall_bet_winnings}
-            </Typography>
-            <Typography variant="subtitle2">
-                Gold lost from overall bets: {player.stats.overall_bet_losses}
-            </Typography>
-            <Typography variant="subtitle2">
-                Gold won from spectator tiles:{" "}
-                {player.stats.spectator_tile_winnings}
-            </Typography>
+            {connectionType === "player" && (
+                <>
+                    {" "}
+                    <Typography variant="subtitle1">Player Stats</Typography>
+                    <Typography variant="subtitle2">
+                        Gold earned from moving frogs:{" "}
+                        {player.stats.move_frog_winnings}
+                    </Typography>
+                    <Typography variant="subtitle2">
+                        Gold won from leg bets: {player.stats.leg_bet_winnings}
+                    </Typography>
+                    <Typography variant="subtitle2">
+                        Gold lost from leg bets: {player.stats.leg_bet_losses}
+                    </Typography>
+                    <Typography variant="subtitle2">
+                        Gold won from overall bets:{" "}
+                        {player.stats.overall_bet_winnings}
+                    </Typography>
+                    <Typography variant="subtitle2">
+                        Gold lost from overall bets:{" "}
+                        {player.stats.overall_bet_losses}
+                    </Typography>
+                    <Typography variant="subtitle2">
+                        Gold won from spectator tiles:{" "}
+                        {player.stats.spectator_tile_winnings}
+                    </Typography>
+                </>
+            )}
             <Typography variant="subtitle1">Game Stats</Typography>
             <Typography variant="subtitle2">
                 Highest Bet Accuracy:{" "}
@@ -74,7 +84,7 @@ const EndGameStatsView = ({
                 {endGameStats.most_spectator_tile_winnings[0].connection.name} (
                 {endGameStats.most_spectator_tile_winnings[1]})
             </Typography>
-            {player.connection.is_host && (
+            {connectionType === "player" && player.connection.is_host && (
                 <Button
                     variant="outlined"
                     onClick={handleResetGame}

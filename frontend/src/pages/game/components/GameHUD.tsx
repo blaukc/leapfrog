@@ -9,7 +9,7 @@ import NotesIcon from "@mui/icons-material/Notes";
 
 interface GameHUDProps {
     gameState: GameState;
-    playerId: string;
+    playerId: string | null;
 }
 
 const GameHUD = ({ gameState, playerId }: GameHUDProps) => {
@@ -32,6 +32,7 @@ const GameHUD = ({ gameState, playerId }: GameHUDProps) => {
                     .map((playerId) => gameState.players[playerId])
                     .map((player) => (
                         <PlayerInfo
+                            key={player.connection.websocket_id}
                             player={player}
                             frogs={gameState.frogs}
                             isCurrentTurn={
@@ -77,6 +78,7 @@ const GameHUD = ({ gameState, playerId }: GameHUDProps) => {
                         .map((playerId) => gameState.players[playerId])
                         .map((player) => (
                             <PlayerInfo
+                                key={player.connection.websocket_id}
                                 player={player}
                                 frogs={gameState.frogs}
                                 isCurrentTurn={
