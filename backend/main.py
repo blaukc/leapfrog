@@ -183,19 +183,34 @@ async def create_spectator(
     response: Response,
     state_manager: GameManager = Depends(get_state_manager),
 ):
-    if await state_manager.get_game_state(game_code) is not None:
-        websocket_id = str(uuid.uuid4())[:8]
-        await state_manager.add_event(
-            SpectatorJoinEvent(gameCode=game_code, websocket_id=websocket_id)
-        )
-        return {
-            "success": True,
-            "websocket_id": websocket_id,
-            "message": f"Spectator has joined game sucessfully.",
-        }
+    if await state_manager.get_game_state(game_code) is None:
+        response.status_code = status.HTTP_404_NOT_FOUND
+        return {"success": False, "message": f"Game code {game_code} does not exist"}
 
-    response.status_code = status.HTTP_404_NOT_FOUND
-    return {"success": False, "message": f"Game code {game_code} does not exist"}
+    websocket_id = str(uuid.uuid4())[:8]
+    await state_manager.add_event(
+        SpectatorJoinEvent(gameCode=game_code, websocket_id=websocket_id)
+    )
+    return {
+        "success": True,
+        "websocket_id": websocket_id,
+        "message": f"Spectator has joined game sucessfully.",
+    }
+
+
+# @prefix_router.post("/game/{game_code}/kick-player", status_code=status.HTTP_200_OK)
+# async def kick_player(
+#     game_code: str,
+#     response: Response,
+#     state_manager: GameManager = Depends(get_state_manager),
+# ):
+#     game_state = await state_manager.get_game_state(game_code)
+#     if game_state is None:
+#         response.status_code = status.HTTP_404_NOT_FOUND
+#         return {"success": False, "message": f"Game code {game_code} does not exist"}
+
+#     if game_state.state != "lobby":
+#         return {"success": False, "message": "Cannot kick players during game."}
 
 
 async def send_game_state(
