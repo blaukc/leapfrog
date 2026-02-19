@@ -85,6 +85,11 @@ def get_state_manager() -> GameManager | None:
     raise RuntimeError("State managers not initialized")
 
 
+@prefix_router.get("/health", status_code=status.HTTP_200_OK)
+async def health_check():
+    return {"status": "ok"}
+
+
 @prefix_router.post("/game/{game_code}/join", status_code=status.HTTP_200_OK)
 async def join_game(
     game_code: str,
