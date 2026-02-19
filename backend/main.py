@@ -76,21 +76,18 @@ app.add_middleware(
 )
 
 
-prefix_router = APIRouter(prefix="/leapfrog")
-
-
 def get_state_manager() -> GameManager | None:
     if hasattr(app.state, "state_manager"):
         return app.state.state_manager
     raise RuntimeError("State managers not initialized")
 
 
-@prefix_router.get("/health", status_code=status.HTTP_200_OK)
+@app.get("/health", status_code=status.HTTP_200_OK)
 async def health_check():
     return {"status": "ok"}
 
 
-@prefix_router.post("/game/{game_code}/join", status_code=status.HTTP_200_OK)
+@app.post("/game/{game_code}/join", status_code=status.HTTP_200_OK)
 async def join_game(
     game_code: str,
     payload: JoinGameRequest,
@@ -121,7 +118,7 @@ async def join_game(
     }
 
 
-@prefix_router.post("/host", status_code=status.HTTP_201_CREATED)
+@app.post("/host", status_code=status.HTTP_201_CREATED)
 async def host_game(
     response: Response, state_manager: GameManager = Depends(get_state_manager)
 ):
@@ -144,7 +141,7 @@ async def host_game(
     }
 
 
-@prefix_router.post("/game/{game_code}/create-player", status_code=status.HTTP_200_OK)
+@app.post("/game/{game_code}/create-player", status_code=status.HTTP_200_OK)
 async def create_player(
     game_code: str,
     payload: CreatePlayerRequest,
@@ -180,9 +177,7 @@ async def create_player(
     }
 
 
-@prefix_router.post(
-    "/game/{game_code}/create-spectator", status_code=status.HTTP_200_OK
-)
+@app.post("/game/{game_code}/create-spectator", status_code=status.HTTP_200_OK)
 async def create_spectator(
     game_code: str,
     response: Response,
@@ -229,7 +224,7 @@ async def send_game_state(
     await websocket.send_json(game_state.make_websocket_response(websocket_id))
 
 
-@prefix_router.websocket("/game/{game_code}")
+@app.websocket("/game/{game_code}")
 async def game_websocket(
     websocket: WebSocket,
     game_code: str,
@@ -264,6 +259,3 @@ async def game_websocket(
         except Exception as e:
             logger.error(f"Failed to parse event: {e}")
             continue
-
-
-app.include_router(prefix_router)
