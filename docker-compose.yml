@@ -1,5 +1,5 @@
 services:
-  backend:
+  leapfrog-backend:
     env_file:
       - .env
     build:
@@ -7,51 +7,34 @@ services:
       dockerfile: backend/Dockerfile
       args:
         - BACKEND_PORT=${BACKEND_PORT}
-    ports:
-      - "${BACKEND_PORT}:8000"
+    networks:
+      - caddy_net
     environment:
       PYTHONUNBUFFERED: "1"
-      BACKEND_PORT: ${BACKEND_PORT}
+      BACKEND_PORT: 8000
       BACKEND_HOST: ${BACKEND_HOST}
       BACKEND_DOMAIN: ${BACKEND_DOMAIN}
       ALLOWED_ORIGINS: "${ALLOWED_ORIGINS}"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT}/" ]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  frontend:
+  leapfrog-frontend:
     env_file:
       - .env
     build:
       context: .
       dockerfile: frontend/Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
-        VITE_WS_BASE_URL: ${VITE_WS_BASE_URL}
-    # frontend will be served internally; Caddy will be the public TLS terminator
+        VITE_API_BASE_URL: "https://blaukc.dev/api/leapfrog"
+        VITE_WS_BASE_URL: "wss://blaukc.dev/api/leapfrog"
+    networks:
+      - caddy_net
     depends_on:
-      - backend
-
-  caddy:
-    image: caddy:2
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - frontend
-      - backend
+      - leapfrog-backend
 
 networks:
-  default:
-    name: leapfrog_default
-
-volumes:
-  caddy_data:
-  caddy_config:
+  caddy_net:
+    external: true
