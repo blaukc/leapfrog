@@ -1,5 +1,6 @@
 services:
   leapfrog-backend:
+    container_name: leapfrog-backend
     env_file:
       - .env
     build:
@@ -22,6 +23,7 @@ services:
       retries: 3
 
   leapfrog-frontend:
+    container_name: leapfrog-frontend
     env_file:
       - .env
     build:
